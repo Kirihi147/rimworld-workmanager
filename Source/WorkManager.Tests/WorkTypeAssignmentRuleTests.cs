@@ -120,4 +120,19 @@ public class WorkTypeAssignmentRuleTests
         settings.Mode = DedicatedWorkerMode.CapablePawnRatio;
         settings.ConstantWorkerCount.Should().Be(1); // Reset to default
     }
+
+    /// <summary>
+    ///     Tests that AssignBestDedicatedWorkersForHour method exists and takes the isConstantMode parameter.
+    /// </summary>
+    [Test]
+    public void AssignBestDedicatedWorkersForHour_HasCorrectParameters()
+    {
+        var method = typeof(WorkPriorityUpdater).GetMethod("AssignBestDedicatedWorkersForHour",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        method.Should().NotBeNull();
+        var parameters = method!.GetParameters();
+        parameters.Length.Should().Be(6);
+        parameters[5].Name.Should().Be("isConstantMode");
+        parameters[5].ParameterType.Should().Be(typeof(bool));
+    }
 }

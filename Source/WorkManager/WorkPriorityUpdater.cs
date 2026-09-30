@@ -130,6 +130,9 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
     private static int AssignBestDedicatedWorkers(Dictionary<PawnCache, float> pawnScores,
         WorkTypeAssignmentRule rule, int workerCount, int targetWorkersCount)
     {
+        var priority = rule.UseDedicatedPriorityOverride
+            ? Mathf.Clamp(rule.DedicatedOverridePriority, 1, WorkManagerMod.Settings.MaxWorkTypePriority)
+            : WorkManagerMod.Settings.DedicatedWorkerPriority;
         while (workerCount < targetWorkersCount && pawnScores.Count > 0)
         {
             PawnCache? bestWorker = null;
@@ -145,7 +148,7 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
                 }
             }
             if (bestWorker == null) break;
-            bestWorker.SetWorkPriority(rule.Def!, WorkManagerMod.Settings.DedicatedWorkerPriority);
+            bestWorker.SetWorkPriority(rule.Def!, priority);
             bestWorker.MarkAsDedicatedWorker(rule.Def!);
             workerCount++;
             pawnScores.Remove(bestWorker);
@@ -161,15 +164,18 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
     /// <param name="hour">The hour of the day (0-23) being covered.</param>
     /// <param name="targetWorkersCount">The number of dedicated workers wanted for the hour.</param>
     /// <param name="dedicatedSet">The accumulating set of dedicated workers (mutated).</param>
-    /// <param name="alreadyPicked">Workers already counted toward the hour from a previous pass.</param>
+    /// <param name="alreadyCoveredAtHour">Workers already covering this hour from previous selections.</param>
+    /// <param name="isConstantMode">Whether the rule is configured in Constant worker count mode.</param>
     /// <returns>The number of workers covering the hour after this pass.</returns>
     private static int AssignBestDedicatedWorkersForHour(Dictionary<PawnCache, float> pawnScores,
-        int hour, int targetWorkersCount, HashSet<PawnCache> dedicatedSet, int alreadyPicked = 0)
+        int hour, int targetWorkersCount, HashSet<PawnCache> dedicatedSet, int alreadyCoveredAtHour = 0,
+        bool isConstantMode = false)
     {
         var candidates = new List<PawnCache>(pawnScores.Count);
         foreach (var pair in pawnScores)
         {
-            if (pair.Key.IsWorkingHour(hour)) candidates.Add(pair.Key);
+            if (pair.Key.IsWorkingHour(hour) && !dedicatedSet.Contains(pair.Key))
+                candidates.Add(pair.Key);
         }
         candidates.Sort((a, b) =>
         {
@@ -178,13 +184,15 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
                 ? comparison
                 : a.Pawn.thingIDNumber.CompareTo(b.Pawn.thingIDNumber);
         });
-        var picked = alreadyPicked;
-        for (var i = 0; i < candidates.Count && picked < targetWorkersCount; i++)
+        var covered = alreadyCoveredAtHour;
+        for (var i = 0; i < candidates.Count && covered < targetWorkersCount; i++)
         {
+            if (isConstantMode && dedicatedSet.Count >= targetWorkersCount)
+                break;
             dedicatedSet.Add(candidates[i]);
-            picked++;
+            covered++;
         }
-        return picked;
+        return covered;
     }
 
     /// <summary>
@@ -952,6 +960,7 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
         }
         var goodScores = GetDedicatedWorkersScores(goodWorkers, def, relevantRules);
         Dictionary<PawnCache, float>? availableScores = null;
+        var isConstantMode = rule.DedicatedWorkerSettings?.Mode == DedicatedWorkerMode.Constant;
         var dedicatedSet = new HashSet<PawnCache>();
         for (var hour = 0; hour < 24; hour++)
         {
@@ -964,8 +973,7 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
             var targetWorkersCount =
                 rule.GetTargetWorkersCount(map, capableAtHour, relevantRules.Count);
             if (targetWorkersCount <= 0) continue;
-            if (rule.DedicatedWorkerSettings?.Mode == DedicatedWorkerMode.Constant &&
-                dedicatedSet.Count >= targetWorkersCount)
+            if (isConstantMode && dedicatedSet.Count >= targetWorkersCount)
             {
                 break;
             }
@@ -977,8 +985,8 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
             if (alreadyCoveredAtHour >= targetWorkersCount) continue;
             var picked =
                 AssignBestDedicatedWorkersForHour(goodScores, hour, targetWorkersCount,
-                    dedicatedSet, alreadyCoveredAtHour);
-            if (picked < targetWorkersCount)
+                    dedicatedSet, alreadyCoveredAtHour, isConstantMode);
+            if (picked < targetWorkersCount && (!isConstantMode || dedicatedSet.Count < targetWorkersCount))
             {
                 if (availableScores == null)
                 {
@@ -991,12 +999,15 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
                         GetDedicatedWorkersScores(availableWorkers, def, relevantRules);
                 }
                 AssignBestDedicatedWorkersForHour(availableScores, hour, targetWorkersCount,
-                    dedicatedSet, picked);
+                    dedicatedSet, picked, isConstantMode);
             }
         }
+        var priority = rule.UseDedicatedPriorityOverride
+            ? Mathf.Clamp(rule.DedicatedOverridePriority, 1, WorkManagerMod.Settings.MaxWorkTypePriority)
+            : WorkManagerMod.Settings.DedicatedWorkerPriority;
         foreach (var pc in dedicatedSet)
         {
-            pc.SetWorkPriority(def, WorkManagerMod.Settings.DedicatedWorkerPriority);
+            pc.SetWorkPriority(def, priority);
             pc.MarkAsDedicatedWorker(def);
         }
         return true;
