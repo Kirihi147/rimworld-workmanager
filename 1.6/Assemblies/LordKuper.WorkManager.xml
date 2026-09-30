@@ -1724,6 +1724,19 @@
                 Validates the work type rules list, ensuring it is initialized with default rules if null.
             </summary>
         </member>
+        <member name="M:LordKuper.WorkManager.Settings.SortWorkTypeRules">
+            <summary>
+                Sorts the work type assignment rules: the default rule (* По умолчанию *) is always first,
+                followed by specific work types ordered by natural priority descending (matching the vanilla Work tab order).
+            </summary>
+        </member>
+        <member name="M:LordKuper.WorkManager.Settings.CompareWorkTypeRulesByPriority(LordKuper.WorkManager.WorkTypeAssignmentRule,LordKuper.WorkManager.WorkTypeAssignmentRule)">
+            <summary>
+                Compares two work type assignment rules for UI display.
+                The default rule (null DefName) is always placed first.
+                Specific work type rules are ordered by naturalPriority descending (matching the vanilla Work tab order).
+            </summary>
+        </member>
         <member name="T:LordKuper.WorkManager.SettingsTabs">
             <summary>
                 Represents the available tabs in the settings section of the application.

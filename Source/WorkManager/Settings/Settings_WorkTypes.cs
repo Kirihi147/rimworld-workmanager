@@ -202,7 +202,18 @@ public partial class Settings
     /// <summary>
     ///     Gets the list of work type assignment rules as a read-only list.
     /// </summary>
-    internal IReadOnlyList<WorkTypeAssignmentRule> WorkTypeRules => _workTypeRules ??= [.. WorkTypeAssignmentRule.DefaultRules];
+    internal IReadOnlyList<WorkTypeAssignmentRule> WorkTypeRules
+    {
+        get
+        {
+            if (_workTypeRules == null)
+            {
+                _workTypeRules = [.. WorkTypeAssignmentRule.DefaultRules];
+                SortWorkTypeRules();
+            }
+            return _workTypeRules;
+        }
+    }
 
     /// <summary>
     ///     Cached height of the bottom part of the work types tab.
@@ -594,6 +605,7 @@ public partial class Settings
     /// <param name="rect">The rectangular area within which the UI elements are rendered.</param>
     private void DoWorkTypesTabTopPart(Rect rect)
     {
+        SortWorkTypeRules();
         var workTypeRules = _workTypeRules!;
         var workTypeRulesCount = workTypeRules.Count;
         var allDefs = DefDatabase<WorkTypeDef>.AllDefsListForReading;
@@ -645,6 +657,7 @@ public partial class Settings
         _workTypesTopHeight = Buttons.DoActionButtonGrid(rect, [
             new ActionButton(Common.Resources.Strings.Actions.Select, () =>
             {
+                SortWorkTypeRules();
                 Find.WindowStack.Add(new FloatMenu([
                     .. workTypeRules.Select(r =>
                         new FloatMenuOption(r.Label, () => { SelectedWorkTypeRule = r; }))
@@ -653,17 +666,19 @@ public partial class Settings
             new ActionButton(Common.Resources.Strings.Actions.Add, () =>
             {
                 Find.WindowStack.Add(new FloatMenu([
-                    .. addableDefs.OrderBy(def => def.labelShort).Select(def =>
+                    .. addableDefs.OrderByDescending(def => def.naturalPriority).ThenBy(def => def.labelShort).Select(def =>
                         new FloatMenuOption(def.GetLabel(), () =>
                         {
                             var rule = WorkTypeAssignmentRule.CreateRule(def.defName);
                             workTypeRules.Add(rule);
+                            SortWorkTypeRules();
                             SelectedWorkTypeRule = rule;
                         }))
                 ]));
             }, Strings.AddWorkTypeTooltip, canAdd),
             new ActionButton(Common.Resources.Strings.Actions.Delete, () =>
             {
+                SortWorkTypeRules();
                 Find.WindowStack.Add(new FloatMenu([
                     .. deletableRules.Select(r => new FloatMenuOption(r.Label, () =>
                     {
@@ -684,6 +699,7 @@ public partial class Settings
     {
         if (Scribe.mode == LoadSaveMode.Saving) ValidateWorkTypes();
         Scribe_Collections.Look(ref _workTypeRules, nameof(WorkTypeRules), LookMode.Deep);
+        if (Scribe.mode == LoadSaveMode.PostLoadInit) SortWorkTypeRules();
     }
 
     /// <summary>
@@ -697,6 +713,7 @@ public partial class Settings
     {
         _workTypeRules!.Clear();
         _workTypeRules.AddRange(WorkTypeAssignmentRule.DefaultRules);
+        SortWorkTypeRules();
         SelectedWorkTypeRule = null;
     }
 
@@ -723,5 +740,54 @@ public partial class Settings
     private void ValidateWorkTypes()
     {
         _workTypeRules ??= [.. WorkTypeAssignmentRule.DefaultRules];
+        SortWorkTypeRules();
+    }
+
+    /// <summary>
+    ///     Sorts the work type assignment rules: the default rule (* По умолчанию *) is always first,
+    ///     followed by specific work types ordered by natural priority descending (matching the vanilla Work tab order).
+    /// </summary>
+    internal void SortWorkTypeRules()
+    {
+        _workTypeRules?.Sort(CompareWorkTypeRulesByPriority);
+    }
+
+    /// <summary>
+    ///     Compares two work type assignment rules for UI display.
+    ///     The default rule (null DefName) is always placed first.
+    ///     Specific work type rules are ordered by naturalPriority descending (matching the vanilla Work tab order).
+    /// </summary>
+    internal static int CompareWorkTypeRulesByPriority(WorkTypeAssignmentRule? x, WorkTypeAssignmentRule? y)
+    {
+        if (ReferenceEquals(x, y)) return 0;
+        if (x is null) return 1;
+        if (y is null) return -1;
+
+        // Default rule (* По умолчанию *) is always first
+        if (x.DefName == null && y.DefName == null) return 0;
+        if (x.DefName == null) return -1;
+        if (y.DefName == null) return 1;
+
+        var xDef = x.Def;
+        var yDef = y.Def;
+
+        if (xDef != null && yDef != null)
+        {
+            var priorityComparison = yDef.naturalPriority.CompareTo(xDef.naturalPriority);
+            if (priorityComparison != 0) return priorityComparison;
+        }
+        else if (xDef != null)
+        {
+            return -1;
+        }
+        else if (yDef != null)
+        {
+            return 1;
+        }
+
+        var labelComparison = string.Compare(x.Label, y.Label, StringComparison.CurrentCultureIgnoreCase);
+        if (labelComparison != 0) return labelComparison;
+
+        return string.Compare(x.DefName, y.DefName, StringComparison.OrdinalIgnoreCase);
     }
 }

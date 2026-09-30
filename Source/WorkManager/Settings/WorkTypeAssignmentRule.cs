@@ -212,34 +212,6 @@ internal class WorkTypeAssignmentRule : DefCache<WorkTypeDef>, IExposable
             AssignEveryonePriority = 1, EnsureWorkerAssigned = false,
             MinWorkerNumber = 0
         },
-        new("Hauling")
-        {
-            AllowedWorkers = new PawnFilter
-            {
-                TriStateMode = true,
-                ForbiddenPawnTypes = [..AllowedWorkersForbiddenPawnTypes],
-                ForbiddenPawnHealthStates = AllowedWorkersForbiddenPawnHealthStates
-            },
-            DedicatedWorkerSettings = new DedicatedWorkerSettings
-                { TriStateMode = true, AllowDedicated = true },
-            AssignEveryone = true,
-            AssignEveryonePriority = 4, EnsureWorkerAssigned = true,
-            MinWorkerNumber = 1
-        },
-        new("Cleaning")
-        {
-            AllowedWorkers = new PawnFilter
-            {
-                TriStateMode = true,
-                ForbiddenPawnTypes = [..AllowedWorkersForbiddenPawnTypes],
-                ForbiddenPawnHealthStates = AllowedWorkersForbiddenPawnHealthStates
-            },
-            DedicatedWorkerSettings = new DedicatedWorkerSettings
-                { TriStateMode = true, AllowDedicated = true },
-            AssignEveryone = true,
-            AssignEveryonePriority = 4, EnsureWorkerAssigned = true,
-            MinWorkerNumber = 1
-        },
         new("Doctor")
         {
             AllowedWorkers = new PawnFilter
@@ -288,6 +260,34 @@ internal class WorkTypeAssignmentRule : DefCache<WorkTypeDef>, IExposable
             },
             AssignEveryone = false, EnsureWorkerAssigned = false,
             MinWorkerNumber = 0
+        },
+        new("Hauling")
+        {
+            AllowedWorkers = new PawnFilter
+            {
+                TriStateMode = true,
+                ForbiddenPawnTypes = [..AllowedWorkersForbiddenPawnTypes],
+                ForbiddenPawnHealthStates = AllowedWorkersForbiddenPawnHealthStates
+            },
+            DedicatedWorkerSettings = new DedicatedWorkerSettings
+                { TriStateMode = true, AllowDedicated = true },
+            AssignEveryone = true,
+            AssignEveryonePriority = 4, EnsureWorkerAssigned = true,
+            MinWorkerNumber = 1
+        },
+        new("Cleaning")
+        {
+            AllowedWorkers = new PawnFilter
+            {
+                TriStateMode = true,
+                ForbiddenPawnTypes = [..AllowedWorkersForbiddenPawnTypes],
+                ForbiddenPawnHealthStates = AllowedWorkersForbiddenPawnHealthStates
+            },
+            DedicatedWorkerSettings = new DedicatedWorkerSettings
+                { TriStateMode = true, AllowDedicated = true },
+            AssignEveryone = true,
+            AssignEveryonePriority = 4, EnsureWorkerAssigned = true,
+            MinWorkerNumber = 1
         }
     ];
 

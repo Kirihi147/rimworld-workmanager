@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using LordKuper.WorkManager.Helpers;
 
 namespace LordKuper.WorkManager.Tests;
@@ -245,14 +246,56 @@ public class WorkTypeAssignmentRuleComparerTests
     }
 
     /// <summary>
-    ///     Tests that the comparer treats reference-equal rules as equal.
+    ///     Tests that CompareWorkTypeRulesByPriority always places the default rule (null DefName) before specific rules.
     /// </summary>
     [Test]
-    public void Compare_ReferenceEqual_ReturnsZero()
+    public void CompareWorkTypeRulesByPriority_DefaultRule_AlwaysComesFirst()
     {
-        var comparer = new WorkTypeAssignmentRuleComparer();
+        var defaultRule = new WorkTypeAssignmentRule(null);
+        var firefighterRule = new WorkTypeAssignmentRule("Firefighter");
+        var cleaningRule = new WorkTypeAssignmentRule("Cleaning");
+
+        // Default rule vs specific rules
+        Settings.CompareWorkTypeRulesByPriority(defaultRule, firefighterRule).Should().BeLessThan(0);
+        Settings.CompareWorkTypeRulesByPriority(defaultRule, cleaningRule).Should().BeLessThan(0);
+
+        // Specific rules vs default rule
+        Settings.CompareWorkTypeRulesByPriority(firefighterRule, defaultRule).Should().BeGreaterThan(0);
+        Settings.CompareWorkTypeRulesByPriority(cleaningRule, defaultRule).Should().BeGreaterThan(0);
+
+        // Default vs default
+        Settings.CompareWorkTypeRulesByPriority(defaultRule, defaultRule).Should().Be(0);
+    }
+
+    /// <summary>
+    ///     Tests that CompareWorkTypeRulesByPriority handles nulls correctly.
+    /// </summary>
+    [Test]
+    public void CompareWorkTypeRulesByPriority_NullHandling()
+    {
         var rule = new WorkTypeAssignmentRule("Cleaning");
-        var result = comparer.Compare(rule, rule);
-        result.Should().Be(0);
+
+        Settings.CompareWorkTypeRulesByPriority(null, null).Should().Be(0);
+        Settings.CompareWorkTypeRulesByPriority(null, rule).Should().BeGreaterThan(0);
+        Settings.CompareWorkTypeRulesByPriority(rule, null).Should().BeLessThan(0);
+    }
+
+    /// <summary>
+    ///     Tests that DefaultRules has Doctor and Hunting positioned before Hauling and Cleaning.
+    /// </summary>
+    [Test]
+    public void DefaultRules_HasDoctorAndHuntingBeforeHaulingAndCleaning()
+    {
+        var rules = WorkTypeAssignmentRule.DefaultRules.Select(r => r.DefName).ToList();
+
+        var doctorIndex = rules.IndexOf("Doctor");
+        var huntingIndex = rules.IndexOf("Hunting");
+        var haulingIndex = rules.IndexOf("Hauling");
+        var cleaningIndex = rules.IndexOf("Cleaning");
+
+        doctorIndex.Should().BeLessThan(haulingIndex);
+        doctorIndex.Should().BeLessThan(cleaningIndex);
+        huntingIndex.Should().BeLessThan(haulingIndex);
+        huntingIndex.Should().BeLessThan(cleaningIndex);
     }
 }
