@@ -196,6 +196,20 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
     }
 
     /// <summary>
+    ///     Determines whether the given pawn has at least one working hour scheduled during the day.
+    /// </summary>
+    /// <param name="pc">The pawn cache to check.</param>
+    /// <returns><c>true</c> if the pawn has at least one scheduled work hour; otherwise, <c>false</c>.</returns>
+    private static bool HasWorkingHour(PawnCache pc)
+    {
+        for (var hour = 0; hour < 24; hour++)
+        {
+            if (pc.IsWorkingHour(hour)) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     ///     Assigns common work priorities to managed pawns based on predefined work types and conditions.
     /// </summary>
     /// <remarks>
@@ -865,21 +879,23 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
             if (dedications > dedicationsMax) dedicationsMax = dedications;
         }
         var dedicationsRange = new FloatRange(dedicationsMin, dedicationsMax);
+        var dedicationsFactor =
+            selectionPreference == DedicatedWorkerSettings.WorkerSelectionPreference.Worst
+                ? 0.001f
+                : WorkManagerMod.Settings.DedicatedWorkerWorkCountScoreFactor;
         foreach (var pc in pawns)
         {
             if (!pc.IsManagedWork(workType)) continue;
             var baseScore = baseScores[pc];
             var normalizedDedications =
                 MathHelper.NormalizeValue(pawnDedicationsCounts[pc], dedicationsRange);
-            var score = baseScore -
-                        WorkManagerMod.Settings.DedicatedWorkerWorkCountScoreFactor *
-                        normalizedDedications;
+            var score = baseScore - dedicationsFactor * normalizedDedications;
             if (pc.IsDangerousWork(workType)) score -= DangerousWorkScorePenalty;
             pawnScores.Add(pc, score);
 #if DEBUG
             Logger.LogMessage($"{workType.defName} score of {pc.Pawn.LabelShortCap} =" +
                               $" base({baseScore:F2})" +
-                              $" - D({normalizedDedications:F1}[{dedicationsRange.TrueMin:N0};{dedicationsRange.TrueMax:N0}])*{WorkManagerMod.Settings.DedicatedWorkerWorkCountScoreFactor:F1}" +
+                              $" - D({normalizedDedications:F1}[{dedicationsRange.TrueMin:N0};{dedicationsRange.TrueMax:N0}])*{dedicationsFactor:F3}" +
                               (pc.IsDangerousWork(workType) ? $" - {DangerousWorkScorePenalty}(dangerous)" : "") +
                               (rule?.DedicatedWorkerSettings?.SelectionPreference.HasValue == true ? $" (preference: {selectionPreference})" : "") +
                               $" = {score:F2}");
@@ -962,44 +978,130 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
         Dictionary<PawnCache, float>? availableScores = null;
         var isConstantMode = rule.DedicatedWorkerSettings?.Mode == DedicatedWorkerMode.Constant;
         var dedicatedSet = new HashSet<PawnCache>();
-        for (var hour = 0; hour < 24; hour++)
+        if (isConstantMode)
         {
-            var capableAtHour = 0;
-            foreach (var pc in _capablePawns)
-            {
-                if (pc.IsWorkingHour(hour)) capableAtHour++;
-            }
-            if (capableAtHour == 0) continue;
             var targetWorkersCount =
-                rule.GetTargetWorkersCount(map, capableAtHour, relevantRules.Count);
-            if (targetWorkersCount <= 0) continue;
-            if (isConstantMode && dedicatedSet.Count >= targetWorkersCount)
+                rule.GetTargetWorkersCount(map, _capablePawns.Count, relevantRules.Count);
+            if (targetWorkersCount <= 0) return true;
+
+            var scheduledGoodWorkers = new List<PawnCache>(goodScores.Count);
+            var unscheduledGoodWorkers = new List<PawnCache>(goodScores.Count);
+            foreach (var pair in goodScores)
             {
-                break;
+                if (HasWorkingHour(pair.Key))
+                    scheduledGoodWorkers.Add(pair.Key);
+                else
+                    unscheduledGoodWorkers.Add(pair.Key);
             }
-            var alreadyCoveredAtHour = 0;
-            foreach (var pc in dedicatedSet)
+            scheduledGoodWorkers.Sort((a, b) =>
             {
-                if (pc.IsWorkingHour(hour)) alreadyCoveredAtHour++;
+                var comparison = goodScores[b].CompareTo(goodScores[a]);
+                return comparison != 0
+                    ? comparison
+                    : a.Pawn.thingIDNumber.CompareTo(b.Pawn.thingIDNumber);
+            });
+            for (var i = 0; i < scheduledGoodWorkers.Count && dedicatedSet.Count < targetWorkersCount; i++)
+            {
+                dedicatedSet.Add(scheduledGoodWorkers[i]);
             }
-            if (alreadyCoveredAtHour >= targetWorkersCount) continue;
-            var picked =
-                AssignBestDedicatedWorkersForHour(goodScores, hour, targetWorkersCount,
-                    dedicatedSet, alreadyCoveredAtHour, isConstantMode);
-            if (picked < targetWorkersCount && (!isConstantMode || dedicatedSet.Count < targetWorkersCount))
+            if (dedicatedSet.Count < targetWorkersCount && unscheduledGoodWorkers.Count > 0)
             {
-                if (availableScores == null)
+                unscheduledGoodWorkers.Sort((a, b) =>
                 {
-                    var availableWorkers = new List<PawnCache>(allowedWorkers.Count);
-                    foreach (var pc in allowedWorkers)
-                    {
-                        if (!goodWorkers.Contains(pc)) availableWorkers.Add(pc);
-                    }
-                    availableScores =
-                        GetDedicatedWorkersScores(availableWorkers, def, relevantRules);
+                    var comparison = goodScores[b].CompareTo(goodScores[a]);
+                    return comparison != 0
+                        ? comparison
+                        : a.Pawn.thingIDNumber.CompareTo(b.Pawn.thingIDNumber);
+                });
+                for (var i = 0; i < unscheduledGoodWorkers.Count && dedicatedSet.Count < targetWorkersCount; i++)
+                {
+                    dedicatedSet.Add(unscheduledGoodWorkers[i]);
                 }
-                AssignBestDedicatedWorkersForHour(availableScores, hour, targetWorkersCount,
-                    dedicatedSet, picked, isConstantMode);
+            }
+            if (dedicatedSet.Count < targetWorkersCount)
+            {
+                var availableWorkers = new List<PawnCache>(allowedWorkers.Count);
+                foreach (var pc in allowedWorkers)
+                {
+                    if (!goodWorkers.Contains(pc)) availableWorkers.Add(pc);
+                }
+                if (availableWorkers.Count > 0)
+                {
+                    availableScores = GetDedicatedWorkersScores(availableWorkers, def, relevantRules);
+                    var scheduledAvailable = new List<PawnCache>(availableScores.Count);
+                    var unscheduledAvailable = new List<PawnCache>(availableScores.Count);
+                    foreach (var pair in availableScores)
+                    {
+                        if (HasWorkingHour(pair.Key))
+                            scheduledAvailable.Add(pair.Key);
+                        else
+                            unscheduledAvailable.Add(pair.Key);
+                    }
+                    scheduledAvailable.Sort((a, b) =>
+                    {
+                        var comparison = availableScores[b].CompareTo(availableScores[a]);
+                        return comparison != 0
+                            ? comparison
+                            : a.Pawn.thingIDNumber.CompareTo(b.Pawn.thingIDNumber);
+                    });
+                    for (var i = 0; i < scheduledAvailable.Count && dedicatedSet.Count < targetWorkersCount; i++)
+                    {
+                        dedicatedSet.Add(scheduledAvailable[i]);
+                    }
+                    if (dedicatedSet.Count < targetWorkersCount && unscheduledAvailable.Count > 0)
+                    {
+                        unscheduledAvailable.Sort((a, b) =>
+                        {
+                            var comparison = availableScores[b].CompareTo(availableScores[a]);
+                            return comparison != 0
+                                ? comparison
+                                : a.Pawn.thingIDNumber.CompareTo(b.Pawn.thingIDNumber);
+                        });
+                        for (var i = 0; i < unscheduledAvailable.Count && dedicatedSet.Count < targetWorkersCount; i++)
+                        {
+                            dedicatedSet.Add(unscheduledAvailable[i]);
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (var hour = 0; hour < 24; hour++)
+            {
+                var capableAtHour = 0;
+                foreach (var pc in _capablePawns)
+                {
+                    if (pc.IsWorkingHour(hour)) capableAtHour++;
+                }
+                if (capableAtHour == 0) continue;
+                var targetWorkersCount =
+                    rule.GetTargetWorkersCount(map, capableAtHour, relevantRules.Count);
+                if (targetWorkersCount <= 0) continue;
+                var alreadyCoveredAtHour = 0;
+                foreach (var pc in dedicatedSet)
+                {
+                    if (pc.IsWorkingHour(hour)) alreadyCoveredAtHour++;
+                }
+                if (alreadyCoveredAtHour >= targetWorkersCount) continue;
+                var picked =
+                    AssignBestDedicatedWorkersForHour(goodScores, hour, targetWorkersCount,
+                        dedicatedSet, alreadyCoveredAtHour);
+                if (picked < targetWorkersCount)
+                {
+                    if (availableScores == null)
+                    {
+                        var availableWorkers = new List<PawnCache>(allowedWorkers.Count);
+                        foreach (var pc in allowedWorkers)
+                        {
+                            if (!goodWorkers.Contains(pc)) availableWorkers.Add(pc);
+                        }
+                        availableScores =
+                            GetDedicatedWorkersScores(availableWorkers, def, relevantRules);
+                    }
+                    AssignBestDedicatedWorkersForHour(availableScores, hour, targetWorkersCount,
+                        dedicatedSet, picked);
+                }
             }
         }
         var priority = rule.UseDedicatedPriorityOverride

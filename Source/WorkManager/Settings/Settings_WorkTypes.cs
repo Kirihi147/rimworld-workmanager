@@ -57,7 +57,12 @@ public partial class Settings
     /// </summary>
     private static readonly Func<DedicatedWorkerSettings.WorkerSelectionPreference?, string>
         WorkerSelectionPreferenceLabel =
-            pref => pref == null ? "* По умолчанию *" : pref.Value.ToString();
+            pref => pref switch
+            {
+                DedicatedWorkerSettings.WorkerSelectionPreference.Best => "Лучший",
+                DedicatedWorkerSettings.WorkerSelectionPreference.Worst => "Худший",
+                _ => "* По умолчанию *"
+            };
 
     /// <summary>
     ///     Provides a function to get the tooltip for a nullable worker selection preference.
@@ -383,7 +388,12 @@ public partial class Settings
                     selectionPref ?? DedicatedWorkerSettings.WorkerSelectionPreference.Best,
                     Enum.GetValues(typeof(DedicatedWorkerSettings.WorkerSelectionPreference))
                         .Cast<DedicatedWorkerSettings.WorkerSelectionPreference>().ToList(),
-                    pref => pref.ToString(),
+                    pref => pref switch
+                    {
+                        DedicatedWorkerSettings.WorkerSelectionPreference.Best => "Лучший",
+                        DedicatedWorkerSettings.WorkerSelectionPreference.Worst => "Худший",
+                        _ => pref.ToString()
+                    },
                     pref => pref == DedicatedWorkerSettings.WorkerSelectionPreference.Best
                         ? "Выбирать лучших доступных работников"
                         : "Выбирать худших доступных работников (например, для простых или неприятных работ)",

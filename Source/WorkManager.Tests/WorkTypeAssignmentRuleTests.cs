@@ -1,3 +1,4 @@
+using System;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -134,5 +135,28 @@ public class WorkTypeAssignmentRuleTests
         parameters.Length.Should().Be(6);
         parameters[5].Name.Should().Be("isConstantMode");
         parameters[5].ParameterType.Should().Be(typeof(bool));
+    }
+
+    /// <summary>
+    ///     Tests that HasWorkingHour helper method exists on WorkPriorityUpdater.
+    /// </summary>
+    [Test]
+    public void HasWorkingHour_Method_Exists()
+    {
+        var method = typeof(WorkPriorityUpdater).GetMethod("HasWorkingHour",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        method.Should().NotBeNull();
+        method!.ReturnType.Should().Be(typeof(bool));
+    }
+
+    /// <summary>
+    ///     Tests that WorkerSelectionPreference enum defines both Best and Worst.
+    /// </summary>
+    [Test]
+    public void WorkerSelectionPreference_DefinesBestAndWorst()
+    {
+        var names = Enum.GetNames(typeof(DedicatedWorkerSettings.WorkerSelectionPreference));
+        names.Should().Contain("Best");
+        names.Should().Contain("Worst");
     }
 }
