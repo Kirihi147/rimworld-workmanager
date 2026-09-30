@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using HarmonyLib;
 using JetBrains.Annotations;
 using LordKuper.WorkManager.Compatibility;
@@ -39,8 +39,10 @@ public class WorkManagerMod : Mod
             WorkTab.Initialize(harmony);
             PriorityMaster.Initialize();
             MoreThanCapable.Initialize();
+            EndlessGrowth.Initialize(harmony);
         }
     }
+
 
     /// <summary>
     ///     Gets the mod settings instance.

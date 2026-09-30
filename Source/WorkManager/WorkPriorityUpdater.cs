@@ -214,7 +214,7 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
                 continue;
             foreach (var workType in relevantWorkTypes)
             {
-                if (pawnCache.IsGuaranteedWorker(workType))
+                if (pawnCache.IsGuaranteedWorker(workType) || pawnCache.IsDedicatedWorker(workType))
                     continue;
 
                 if (!pawnCache.IsManagedWork(workType) || !pawnCache.IsAllowedWorker(workType) ||
@@ -226,7 +226,8 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
     }
 
     /// <summary>
-    ///     Assigns guaranteed workers to work types that require at least a minimum number of workers.
+    ///     Assigns guaranteed workers to work types that require at least a minimum number of workers,
+    ///     accounting for any workers already assigned as dedicated workers.
     /// </summary>
     private void AssignGuaranteedWorkers()
     {
@@ -250,10 +251,27 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
         foreach (var rule in rulesWithGuarantee)
         {
             var def = rule.Def!;
+
+            // Count how many capable pawns are already assigned as dedicated workers for this work type.
+            // Any dedicated worker already satisfies the guarantee.
+            var dedicatedCount = 0;
+            foreach (var pc in _capablePawns)
+            {
+                if (pc.IsDedicatedWorker(def))
+                {
+                    dedicatedCount++;
+                    pc.MarkAsGuaranteedWorker(def);
+                }
+            }
+
+            var neededGuaranteed = rule.MinWorkerNumber - dedicatedCount;
+            if (neededGuaranteed <= 0) continue;
+
             var allCandidates = new List<PawnCache>();
             foreach (var pc in _capablePawns)
             {
                 if (pc.IsManaged &&
+                    !pc.IsDedicatedWorker(def) &&
                     pc.IsManagedWork(def) &&
                     pc.IsAllowedWorker(def) &&
                     !pc.IsBadWork(def) &&
@@ -269,9 +287,9 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
             var sortedCandidates = allCandidates
                 .OrderByDescending(pc => workerScores[pc])
                 .ThenBy(pc => pc.Pawn.thingIDNumber)
-                .Take(rule.MinWorkerNumber)
+                .Take(neededGuaranteed)
                 .ToList();
-            var guaranteedCount = Math.Min(rule.MinWorkerNumber, sortedCandidates.Count);
+            var guaranteedCount = Math.Min(neededGuaranteed, sortedCandidates.Count);
             for (var i = 0; i < guaranteedCount; i++)
             {
                 var candidate = sortedCandidates[i];
@@ -341,8 +359,7 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
         var def = rule.Def!;
         var targetWorkersCount =
             rule.GetTargetWorkersCount(map, _capablePawns.Count, relevantRules.Count);
-        if (rule.EnsureWorkerAssigned == true)
-            targetWorkersCount = Math.Max(targetWorkersCount, rule.MinWorkerNumber);
+        if (targetWorkersCount <= 0) return;
 #if DEBUG
         Logger.LogMessage($"Target dedicated workers for {rule.Label} = {targetWorkersCount}");
         Logger.LogMessage(
@@ -366,11 +383,9 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
         var workerCount = 0;
         foreach (var pc in _capablePawns)
         {
-            if (pc.IsActiveWork(def) && pc.GetWorkPriority(def) <=
-                WorkManagerMod.Settings.DedicatedWorkerPriority)
+            if (pc.IsDedicatedWorker(def))
             {
                 workerCount++;
-                pc.MarkAsDedicatedWorker(def);
             }
         }
         if (workerCount >= targetWorkersCount) return;
@@ -831,8 +846,10 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
             var dedications = 0;
             foreach (var r in rules)
             {
-                if (pc.IsActiveWork(r.Def!) && pc.GetWorkPriority(r.Def!) <=
-                    WorkManagerMod.Settings.DedicatedWorkerPriority)
+                if (r.Def != workType &&
+                    (pc.IsDedicatedWorker(r.Def!) ||
+                     (pc.IsActiveWork(r.Def!) && pc.GetWorkPriority(r.Def!) <=
+                      WorkManagerMod.Settings.DedicatedWorkerPriority)))
                     dedications++;
             }
             pawnDedicationsCounts[pc] = dedications;
@@ -946,12 +963,21 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
             if (capableAtHour == 0) continue;
             var targetWorkersCount =
                 rule.GetTargetWorkersCount(map, capableAtHour, relevantRules.Count);
-            if (rule.EnsureWorkerAssigned == true)
-                targetWorkersCount = Math.Max(targetWorkersCount, rule.MinWorkerNumber);
             if (targetWorkersCount <= 0) continue;
+            if (rule.DedicatedWorkerSettings?.Mode == DedicatedWorkerMode.Constant &&
+                dedicatedSet.Count >= targetWorkersCount)
+            {
+                break;
+            }
+            var alreadyCoveredAtHour = 0;
+            foreach (var pc in dedicatedSet)
+            {
+                if (pc.IsWorkingHour(hour)) alreadyCoveredAtHour++;
+            }
+            if (alreadyCoveredAtHour >= targetWorkersCount) continue;
             var picked =
                 AssignBestDedicatedWorkersForHour(goodScores, hour, targetWorkersCount,
-                    dedicatedSet);
+                    dedicatedSet, alreadyCoveredAtHour);
             if (picked < targetWorkersCount)
             {
                 if (availableScores == null)
@@ -1104,12 +1130,12 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
     /// </remarks>
     private void UpdateWorkPriorities()
     {
-        AssignGuaranteedWorkers();
-        AssignCommonWork();
         if (WorkManagerMod.Settings.UseDedicatedWorkers)
             AssignDedicatedWorkers();
         else
             AssignWorkersBySkill();
+        AssignGuaranteedWorkers();
+        AssignCommonWork();
         if (WorkManagerMod.Settings.UsePassionPriorities)
             AssignWorkersByPassion();
         if (WorkManagerMod.Settings.UseLearningRatesPriorities)

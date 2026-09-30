@@ -88,4 +88,36 @@ public class WorkTypeAssignmentRuleTests
         var result = targetMethod!.Invoke(null, null);
         result.Should().NotBeNull();
     }
+
+    /// <summary>
+    ///     Tests that WorkPriorityUpdater contains the expected assignment methods.
+    /// </summary>
+    [TestCase("AssignGuaranteedWorkers")]
+    [TestCase("AssignDedicatedWorkers")]
+    [TestCase("AssignDedicatedWorkersForDay")]
+    [TestCase("TryAssignDedicatedWorkersBySchedule")]
+    [TestCase("UpdateWorkPriorities")]
+    public void WorkPriorityUpdater_Methods_Exist(string methodName)
+    {
+        var method = typeof(WorkPriorityUpdater).GetMethod(methodName,
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method.Should().NotBeNull($"WorkPriorityUpdater should have method {methodName}");
+    }
+
+    /// <summary>
+    ///     Tests that setting Mode on DedicatedWorkerSettings resets ConstantWorkerCount when switching away from Constant.
+    /// </summary>
+    [Test]
+    public void DedicatedWorkerSettings_ModeChange_ResetsIrrelevantSettings()
+    {
+        var settings = new DedicatedWorkerSettings
+        {
+            Mode = DedicatedWorkerMode.Constant,
+            ConstantWorkerCount = 5
+        };
+        settings.ConstantWorkerCount.Should().Be(5);
+
+        settings.Mode = DedicatedWorkerMode.CapablePawnRatio;
+        settings.ConstantWorkerCount.Should().Be(1); // Reset to default
+    }
 }

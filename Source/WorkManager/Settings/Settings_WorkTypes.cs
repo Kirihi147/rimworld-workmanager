@@ -177,6 +177,9 @@ public partial class Settings
         {
             if (Equals(_selectedWorkTypeRule, value)) return;
             _selectedWorkTypeRule = value;
+            _assignmentSectionContentHeight = 0f;
+            _dedicatedWorkersSectionContentHeight = 0f;
+            _allowedWorkersSectionContentHeight = 0f;
             UpdateAllowedWorkers();
         }
     }
@@ -240,8 +243,7 @@ public partial class Settings
             WorkManagerMod.GetModInputId(AllowedWorkersPawnStatInputLocalId),
             WorkManagerMod.GetModInputId(AllowedWorkersPawnCapacityInputLocalId),
             UpdateAllowedWorkers, out _);
-        if (Event.current.type == EventType.Layout)
-            _allowedWorkersSectionContentHeight = allowedWorkersContentHeight;
+        _allowedWorkersSectionContentHeight = allowedWorkersContentHeight;
         return y;
     }
 
@@ -330,8 +332,7 @@ public partial class Settings
                 Strings.AssignEveryonePriorityLabel, Strings.AssignEveryonePriorityTooltip,
                 ref rule.AssignEveryonePriority, 0, MaxWorkTypePriority, 1, null,
                 out assignmentRect);
-        if (Event.current.type == EventType.Layout)
-            _assignmentSectionContentHeight = assignmentContentHeight;
+        _assignmentSectionContentHeight = assignmentContentHeight;
         return y;
     }
 
@@ -406,14 +407,14 @@ public partial class Settings
                     null, Strings.DedicatedWorkerModeLabel, Strings.DedicatedWorkerModeTooltip,
                     mode ?? DedicatedWorkerMode.Constant, DedicatedWorkerModesCache,
                     DedicatedWorkerModeLabel, DedicatedWorkerModeTooltip,
-                    m => { rule.DedicatedWorkerSettings.Mode = m; }, null,
+                    m => { rule.DedicatedWorkerSettings.Mode = m; _dedicatedWorkersSectionContentHeight = 0f; }, null,
                     out dedicatedWorkersRect);
             else
                 dedicatedWorkersContentHeight += Fields.DoLabeledSelector(dedicatedWorkersRect, 1,
                     null, Strings.DedicatedWorkerModeLabel, Strings.DedicatedWorkerModeTooltip,
                     mode, DedicatedWorkerNullableModesCache, DedicatedWorkerNullableModeLabel,
                     DedicatedWorkerNullableModeTooltip,
-                    m => { rule.DedicatedWorkerSettings.Mode = m; }, null,
+                    m => { rule.DedicatedWorkerSettings.Mode = m; _dedicatedWorkersSectionContentHeight = 0f; }, null,
                     out dedicatedWorkersRect);
             switch (rule.DedicatedWorkerSettings.Mode)
             {
@@ -458,7 +459,7 @@ public partial class Settings
                         WorkManagerMod.GetModInputId(DedicatedWorkersPawnSkillInputLocalId),
                         WorkManagerMod.GetModInputId(DedicatedWorkersPawnStatInputLocalId),
                         WorkManagerMod.GetModInputId(DedicatedWorkersPawnCapacityInputLocalId),
-                        null, out _);
+                        null, out dedicatedWorkersRect);
                     break;
                 case null:
                     break;
@@ -493,8 +494,7 @@ public partial class Settings
                 );
             }
         }
-        if (Event.current.type == EventType.Layout)
-            _dedicatedWorkersSectionContentHeight = dedicatedWorkersContentHeight;
+        _dedicatedWorkersSectionContentHeight = dedicatedWorkersContentHeight;
         return y;
     }
 
@@ -565,7 +565,7 @@ public partial class Settings
             y += DoNoWorkTypeRuleSelectedLabel(rect);
         else
             y += DoWorkTypeRule(rect);
-        if (Event.current.type == EventType.Layout) _workTypesScrollableContentHeight = y;
+        _workTypesScrollableContentHeight = y;
     }
 
     /// <summary>
