@@ -87,6 +87,52 @@
                 Gets the work cache for the pawn.
             </summary>
         </member>
+        <member name="F:LordKuper.WorkManager.Cache.PawnCache._guaranteedWorkTypes">
+            <summary>
+                Work types for which this pawn was assigned as a guaranteed worker.
+            </summary>
+        </member>
+        <member name="F:LordKuper.WorkManager.Cache.PawnCache._dedicatedWorkTypes">
+            <summary>
+                Work types for which this pawn was assigned as a dedicated worker.
+            </summary>
+        </member>
+        <member name="M:LordKuper.WorkManager.Cache.PawnCache.MarkAsDedicatedWorker(Verse.WorkTypeDef)">
+            <summary>
+                Marks the worker as dedicated for the specified work type.
+            </summary>
+            <param name="workType">The work type.</param>
+        </member>
+        <member name="M:LordKuper.WorkManager.Cache.PawnCache.IsDedicatedWorker(Verse.WorkTypeDef)">
+            <summary>
+                Checks whether the worker is dedicated for the specified work type.
+            </summary>
+            <param name="workType">The work type.</param>
+            <returns><c>true</c> if the worker is dedicated for the specified work type; otherwise <c>false</c>.</returns>
+        </member>
+        <member name="M:LordKuper.WorkManager.Cache.PawnCache.ClearDedicatedWorkTypes">
+            <summary>
+                Clears all dedicated worker assignments for this pawn.
+            </summary>
+        </member>
+        <member name="M:LordKuper.WorkManager.Cache.PawnCache.MarkAsGuaranteedWorker(Verse.WorkTypeDef)">
+            <summary>
+                Marks the worker as guaranteed for the specified work type.
+            </summary>
+            <param name="workType">The work type.</param>
+        </member>
+        <member name="M:LordKuper.WorkManager.Cache.PawnCache.IsGuaranteedWorker(Verse.WorkTypeDef)">
+            <summary>
+                Checks whether the worker is guaranteed for the specified work type.
+            </summary>
+            <param name="workType">The work type.</param>
+            <returns><c>true</c> if the worker is guaranteed for the specified work type; otherwise <c>false</c>.</returns>
+        </member>
+        <member name="M:LordKuper.WorkManager.Cache.PawnCache.ClearGuaranteedWorkTypes">
+            <summary>
+                Clears all guaranteed worker assignments for this pawn.
+            </summary>
+        </member>
         <member name="M:LordKuper.WorkManager.Cache.PawnCache.GetLearningRate(Verse.WorkTypeDef)">
             <summary>
                 Retrieves the learning rate for a specified type of work.
@@ -344,6 +390,22 @@
                 <c>true</c> if the cache was updated; otherwise, <c>false</c>.
             </returns>
         </member>
+        <member name="T:LordKuper.WorkManager.Compatibility.EndlessGrowth">
+            <summary>
+                Provides compatibility integration with the EndlessGrowth mod.
+            </summary>
+        </member>
+        <member name="P:LordKuper.WorkManager.Compatibility.EndlessGrowth.Active">
+            <summary>
+                Gets a value indicating whether the EndlessGrowth mod is active.
+            </summary>
+        </member>
+        <member name="M:LordKuper.WorkManager.Compatibility.EndlessGrowth.Initialize(HarmonyLib.Harmony)">
+            <summary>
+                Initializes EndlessGrowth compatibility by applying UI patches after all game data and languages have finished loading.
+            </summary>
+            <param name="harmony">The Harmony instance used for patching.</param>
+        </member>
         <member name="T:LordKuper.WorkManager.Compatibility.MoreThanCapable">
             <summary>
                 Provides compatibility integration with the MoreThanCapable mod.
@@ -590,6 +652,32 @@
                 "WorkPriority"; <see cref="F:LordKuper.WorkManager.DefOfs.PawnColumnDefOf.AutoWorkSchedule" /> is inserted before the "Timetable" column.
             </summary>
         </member>
+        <member name="T:LordKuper.WorkManager.Patches.EndlessGrowthPatch">
+            <summary>
+                Harmony patch to expand the maximum skill level in the pawn filter UI when EndlessGrowth is active.
+            </summary>
+        </member>
+        <member name="M:LordKuper.WorkManager.Patches.EndlessGrowthPatch.Apply(HarmonyLib.Harmony)">
+            <summary>
+                Applies the EndlessGrowth compatibility patch to PawnFilterWidget.DoPawnSkillsSection.
+            </summary>
+            <param name="harmony">The Harmony instance to use for patching.</param>
+        </member>
+        <member name="M:LordKuper.WorkManager.Patches.EndlessGrowthPatch.TargetMethod">
+            <summary>
+                Returns the target method to patch.
+            </summary>
+        </member>
+        <member name="M:LordKuper.WorkManager.Patches.EndlessGrowthPatch.Transpiler(System.Collections.Generic.IEnumerable{HarmonyLib.CodeInstruction})">
+            <summary>
+                Transpiles the skill slider max value instruction in the UI widget.
+            </summary>
+        </member>
+        <member name="M:LordKuper.WorkManager.Patches.EndlessGrowthPatch.GetMaxSkillLevel">
+            <summary>
+                Returns the maximum skill level based on EndlessGrowth active state.
+            </summary>
+        </member>
         <member name="T:LordKuper.WorkManager.Patches.MainTabWindowWorkPatch">
             <summary>
                 Harmony patch for <see cref="M:RimWorld.MainTabWindow_Work.DoWindowContents(UnityEngine.Rect)" /> to inject custom UI buttons for work
@@ -800,6 +888,11 @@
             <param name="mode">The dedicated worker mode for which to retrieve the tooltip.</param>
             <returns>A string containing the tooltip text for the specified mode.</returns>
         </member>
+        <member name="T:LordKuper.WorkManager.Resources.Strings.WorkerSelectionPreference">
+            <summary>
+                Provides localized labels and tooltips for <see cref="T:LordKuper.WorkManager.DedicatedWorkerSettings.WorkerSelectionPreference" /> values.
+            </summary>
+        </member>
         <member name="T:LordKuper.WorkManager.ScheduleUpdater">
             <summary>
                 Map component that assigns pawn work schedules based on configured work shifts.
@@ -903,6 +996,26 @@
                 The default value for <see cref="F:LordKuper.WorkManager.DedicatedWorkerSettings.CapablePawnRatioFactor" />.
             </summary>
         </member>
+        <member name="T:LordKuper.WorkManager.DedicatedWorkerSettings.WorkerSelectionPreference">
+            <summary>
+                Represents the preference for selecting workers (best or worst).
+            </summary>
+        </member>
+        <member name="F:LordKuper.WorkManager.DedicatedWorkerSettings.WorkerSelectionPreference.Best">
+            <summary>
+                Select the best available workers.
+            </summary>
+        </member>
+        <member name="F:LordKuper.WorkManager.DedicatedWorkerSettings.WorkerSelectionPreference.Worst">
+            <summary>
+                Select the worst available workers.
+            </summary>
+        </member>
+        <member name="F:LordKuper.WorkManager.DedicatedWorkerSettings.SelectionPreferenceDefault">
+            <summary>
+                The default value for <see cref="F:LordKuper.WorkManager.DedicatedWorkerSettings.SelectionPreference" />.
+            </summary>
+        </member>
         <member name="F:LordKuper.WorkManager.DedicatedWorkerSettings.CapablePawnRatioFactorMax">
             <summary>
                 The maximum allowed value for <see cref="F:LordKuper.WorkManager.DedicatedWorkerSettings.CapablePawnRatioFactor" />.
@@ -961,6 +1074,11 @@
         <member name="F:LordKuper.WorkManager.DedicatedWorkerSettings.AllowDedicated">
             <summary>
                 Indicates whether dedicated workers are allowed.
+            </summary>
+        </member>
+        <member name="F:LordKuper.WorkManager.DedicatedWorkerSettings.SelectionPreference">
+            <summary>
+                Preference for worker selection when assigning dedicated workers.
             </summary>
         </member>
         <member name="F:LordKuper.WorkManager.DedicatedWorkerSettings.CapablePawnRatioFactor">
@@ -1363,6 +1481,36 @@
                 Local input ID for dedicated workers pawn stat.
             </summary>
         </member>
+        <member name="F:LordKuper.WorkManager.Settings.WorkerSelectionPreferenceLabel">
+            <summary>
+                Provides a function to get the label for a worker selection preference.
+            </summary>
+        </member>
+        <member name="F:LordKuper.WorkManager.Settings.WorkerSelectionPreferenceTooltip">
+            <summary>
+                Provides a function to get the tooltip for a worker selection preference.
+            </summary>
+        </member>
+        <member name="F:LordKuper.WorkManager.Settings.WorkerSelectionNullablePreferenceLabel">
+            <summary>
+                Provides a function to get the label for a nullable worker selection preference.
+            </summary>
+        </member>
+        <member name="F:LordKuper.WorkManager.Settings.WorkerSelectionNullablePreferenceTooltip">
+            <summary>
+                Provides a function to get the tooltip for a nullable worker selection preference.
+            </summary>
+        </member>
+        <member name="F:LordKuper.WorkManager.Settings.DedicatedWorkerSelectionPreferencesCache">
+            <summary>
+                Caches all available worker selection preferences.
+            </summary>
+        </member>
+        <member name="F:LordKuper.WorkManager.Settings.WorkerSelectionPreferencesCache">
+            <summary>
+                Caches all available nullable worker selection preferences.
+            </summary>
+        </member>
         <member name="F:LordKuper.WorkManager.Settings.DedicatedWorkerModeLabel">
             <summary>
                 Provides a function to get the label for a dedicated worker mode.
@@ -1434,6 +1582,11 @@
                 Cached height of the top part of the work types tab.
             </summary>
         </member>
+        <member name="F:LordKuper.WorkManager.Settings._selectedWorkTypeRule">
+            <summary>
+                Backing field for <see cref="P:LordKuper.WorkManager.Settings.SelectedWorkTypeRule" />.
+            </summary>
+        </member>
         <member name="P:LordKuper.WorkManager.Settings.SelectedWorkTypeRule">
             <summary>
                 Gets or sets the currently selected work type rule for editing.
@@ -1443,6 +1596,11 @@
         <member name="P:LordKuper.WorkManager.Settings.WorkTypeRules">
             <summary>
                 Gets the list of work type assignment rules as a read-only list.
+            </summary>
+        </member>
+        <member name="F:LordKuper.WorkManager.Settings._workTypesBottomHeight">
+            <summary>
+                Cached height of the bottom part of the work types tab.
             </summary>
         </member>
         <member name="P:LordKuper.WorkManager.Settings.WorkTypesBottomHeight">
@@ -1647,6 +1805,26 @@
         <member name="F:LordKuper.WorkManager.WorkTypeAssignmentRule.MinWorkerNumber">
             <summary>
                 Gets or sets the minimum number of workers to be assigned.
+            </summary>
+        </member>
+        <member name="F:LordKuper.WorkManager.WorkTypeAssignmentRule.UseDedicatedPriorityOverride">
+            <summary>
+                Indicates whether dedicated workers should use an overridden work priority.
+            </summary>
+        </member>
+        <member name="F:LordKuper.WorkManager.WorkTypeAssignmentRule.DedicatedOverridePriority">
+            <summary>
+                The priority override to use for dedicated workers when enabled.
+            </summary>
+        </member>
+        <member name="F:LordKuper.WorkManager.WorkTypeAssignmentRule.UseGuaranteedPriorityOverride">
+            <summary>
+                Indicates whether guaranteed workers should use an overridden work priority.
+            </summary>
+        </member>
+        <member name="F:LordKuper.WorkManager.WorkTypeAssignmentRule.GuaranteedOverridePriority">
+            <summary>
+                The priority override to use for guaranteed workers when enabled.
             </summary>
         </member>
         <member name="M:LordKuper.WorkManager.WorkTypeAssignmentRule.#ctor">
@@ -2157,7 +2335,7 @@
             <param name="targetWorkersCount">The desired number of dedicated workers.</param>
             <returns>The updated worker count after assignments.</returns>
         </member>
-        <member name="M:LordKuper.WorkManager.WorkPriorityUpdater.AssignBestDedicatedWorkersForHour(System.Collections.Generic.Dictionary{LordKuper.WorkManager.Cache.PawnCache,System.Single},System.Int32,System.Int32,System.Collections.Generic.HashSet{LordKuper.WorkManager.Cache.PawnCache},System.Int32)">
+        <member name="M:LordKuper.WorkManager.WorkPriorityUpdater.AssignBestDedicatedWorkersForHour(System.Collections.Generic.Dictionary{LordKuper.WorkManager.Cache.PawnCache,System.Single},System.Int32,System.Int32,System.Collections.Generic.HashSet{LordKuper.WorkManager.Cache.PawnCache},System.Int32,System.Boolean)">
             <summary>
                 Adds the highest-scoring workers on the clock at the given hour to the dedicated set until the
                 hour's target count is reached or no further candidates remain.
@@ -2166,8 +2344,16 @@
             <param name="hour">The hour of the day (0-23) being covered.</param>
             <param name="targetWorkersCount">The number of dedicated workers wanted for the hour.</param>
             <param name="dedicatedSet">The accumulating set of dedicated workers (mutated).</param>
-            <param name="alreadyPicked">Workers already counted toward the hour from a previous pass.</param>
+            <param name="alreadyCoveredAtHour">Workers already covering this hour from previous selections.</param>
+            <param name="isConstantMode">Whether the rule is configured in Constant worker count mode.</param>
             <returns>The number of workers covering the hour after this pass.</returns>
+        </member>
+        <member name="M:LordKuper.WorkManager.WorkPriorityUpdater.HasWorkingHour(LordKuper.WorkManager.Cache.PawnCache)">
+            <summary>
+                Determines whether the given pawn has at least one working hour scheduled during the day.
+            </summary>
+            <param name="pc">The pawn cache to check.</param>
+            <returns><c>true</c> if the pawn has at least one scheduled work hour; otherwise, <c>false</c>.</returns>
         </member>
         <member name="M:LordKuper.WorkManager.WorkPriorityUpdater.AssignCommonWork">
             <summary>
@@ -2179,6 +2365,12 @@
                 not recovering are considered. Work types that are disabled or deemed unsuitable for a pawn are excluded from
                 assignment.
             </remarks>
+        </member>
+        <member name="M:LordKuper.WorkManager.WorkPriorityUpdater.AssignGuaranteedWorkers">
+            <summary>
+                Assigns guaranteed workers to work types that require at least a minimum number of workers,
+                accounting for any workers already assigned as dedicated workers.
+            </summary>
         </member>
         <member name="M:LordKuper.WorkManager.WorkPriorityUpdater.AssignDedicatedWorkers">
             <summary>
@@ -2248,6 +2440,16 @@
                 skill levels are prioritized,  and only those who meet the criteria for a specific task are considered. If no
                 workers or relevant rules are available,  the method exits without making any assignments.
             </remarks>
+        </member>
+        <member name="M:LordKuper.WorkManager.WorkPriorityUpdater.GetWorkerBaseScoresWithPreference(System.Collections.Generic.IReadOnlyCollection{LordKuper.WorkManager.Cache.PawnCache},Verse.WorkTypeDef,LordKuper.WorkManager.DedicatedWorkerSettings.WorkerSelectionPreference)">
+            <summary>
+                Calculates base suitability scores for pawns based on skill, passion, and learning rate,
+                taking worker selection preference into account.
+            </summary>
+            <param name="pawns">The collection of pawns to evaluate.</param>
+            <param name="workType">The work type for which scores are calculated.</param>
+            <param name="selectionPreference">The worker selection preference (best or worst).</param>
+            <returns>A dictionary mapping each pawn to its base score.</returns>
         </member>
         <member name="M:LordKuper.WorkManager.WorkPriorityUpdater.GetDedicatedWorkersScores(System.Collections.Generic.IReadOnlyCollection{LordKuper.WorkManager.Cache.PawnCache},Verse.WorkTypeDef,System.Collections.Generic.IReadOnlyCollection{LordKuper.WorkManager.WorkTypeAssignmentRule})">
             <summary>
