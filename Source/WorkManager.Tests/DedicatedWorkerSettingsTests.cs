@@ -92,6 +92,46 @@ public class DedicatedWorkerSettingsTests
     }
 
     /// <summary>
+    ///     Tests that Combine uses main's SelectionPreference when specified.
+    /// </summary>
+    [Test]
+    public void Combine_SelectionPreference_UsesMain()
+    {
+        var main = new DedicatedWorkerSettings
+        {
+            Mode = DedicatedWorkerMode.Constant,
+            SelectionPreference = DedicatedWorkerSettings.WorkerSelectionPreference.Worst
+        };
+        var fallback = new DedicatedWorkerSettings
+        {
+            Mode = DedicatedWorkerMode.Constant,
+            SelectionPreference = DedicatedWorkerSettings.WorkerSelectionPreference.Best
+        };
+        var combined = DedicatedWorkerSettings.Combine(main, fallback);
+        combined.SelectionPreference.Should().Be(DedicatedWorkerSettings.WorkerSelectionPreference.Worst);
+    }
+
+    /// <summary>
+    ///     Tests that Combine uses fallback SelectionPreference when main's is null.
+    /// </summary>
+    [Test]
+    public void Combine_SelectionPreferenceNull_UsesFallback()
+    {
+        var main = new DedicatedWorkerSettings
+        {
+            Mode = DedicatedWorkerMode.Constant,
+            SelectionPreference = null
+        };
+        var fallback = new DedicatedWorkerSettings
+        {
+            Mode = DedicatedWorkerMode.Constant,
+            SelectionPreference = DedicatedWorkerSettings.WorkerSelectionPreference.Worst
+        };
+        var combined = DedicatedWorkerSettings.Combine(main, fallback);
+        combined.SelectionPreference.Should().Be(DedicatedWorkerSettings.WorkerSelectionPreference.Worst);
+    }
+
+    /// <summary>
     ///     Tests that Combine throws when fallback is null.
     /// </summary>
     [Test]

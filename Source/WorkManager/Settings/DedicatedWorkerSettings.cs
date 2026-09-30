@@ -16,6 +16,28 @@ internal class DedicatedWorkerSettings : IExposable
     private const float CapablePawnRatioFactorDefault = 1f;
 
     /// <summary>
+    ///     Represents the preference for selecting workers (best or worst).
+    /// </summary>
+    public enum WorkerSelectionPreference
+    {
+        /// <summary>
+        ///     Select the best available workers.
+        /// </summary>
+        Best,
+
+        /// <summary>
+        ///     Select the worst available workers.
+        /// </summary>
+        Worst
+    }
+
+    /// <summary>
+    ///     The default value for <see cref="SelectionPreference" />.
+    /// </summary>
+    private const WorkerSelectionPreference SelectionPreferenceDefault =
+        WorkerSelectionPreference.Best;
+
+    /// <summary>
     ///     The maximum allowed value for <see cref="CapablePawnRatioFactor" />.
     /// </summary>
     public const float CapablePawnRatioFactorMax = 5f;
@@ -74,6 +96,11 @@ internal class DedicatedWorkerSettings : IExposable
     ///     Indicates whether dedicated workers are allowed.
     /// </summary>
     public bool? AllowDedicated;
+
+    /// <summary>
+    ///     Preference for worker selection when assigning dedicated workers.
+    /// </summary>
+    public WorkerSelectionPreference? SelectionPreference;
 
     /// <summary>
     ///     Multiplier for the ratio of capable pawns when calculating dedicated workers.
@@ -141,6 +168,8 @@ internal class DedicatedWorkerSettings : IExposable
         Scribe_Values.Look(ref TriStateMode, nameof(TriStateMode));
         Scribe_Values.Look(ref AllowDedicated, nameof(AllowDedicated), true);
         Scribe_Values.Look(ref _mode, nameof(Mode));
+        Scribe_Values.Look(ref SelectionPreference, nameof(SelectionPreference),
+            SelectionPreferenceDefault);
         Scribe_Values.Look(ref ConstantWorkerCount, nameof(ConstantWorkerCount),
             ConstantWorkerCountDefault);
         Scribe_Values.Look(ref WorkTypeCountFactor, nameof(WorkTypeCountFactor),
@@ -185,7 +214,8 @@ internal class DedicatedWorkerSettings : IExposable
         {
             TriStateMode = false,
             AllowDedicated = main.AllowDedicated ?? fallback.AllowDedicated,
-            Mode = main.Mode ?? fallback.Mode
+            Mode = main.Mode ?? fallback.Mode,
+            SelectionPreference = main.SelectionPreference ?? fallback.SelectionPreference
         };
         switch (settings.Mode)
         {
@@ -227,6 +257,7 @@ internal class DedicatedWorkerSettings : IExposable
         {
             AllowDedicated ??= true;
             Mode ??= DedicatedWorkerMode.WorkTypeCount;
+            SelectionPreference ??= SelectionPreferenceDefault;
         }
         if (Mode == DedicatedWorkerMode.PawnCount && PawnCountFilter == null)
             PawnCountFilter = new PawnFilter();

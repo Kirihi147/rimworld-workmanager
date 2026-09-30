@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using LordKuper.Common;
 using LordKuper.WorkManager.Helpers;
@@ -74,6 +74,70 @@ internal class PawnCache(Pawn pawn)
     ///     Gets the work cache for the pawn.
     /// </summary>
     private PawnWorkCache Work { get; } = new(pawn);
+
+    /// <summary>
+    ///     Work types for which this pawn was assigned as a guaranteed worker.
+    /// </summary>
+    private readonly HashSet<WorkTypeDef> _guaranteedWorkTypes = [];
+
+    /// <summary>
+    ///     Work types for which this pawn was assigned as a dedicated worker.
+    /// </summary>
+    private readonly HashSet<WorkTypeDef> _dedicatedWorkTypes = [];
+
+    /// <summary>
+    ///     Marks the worker as dedicated for the specified work type.
+    /// </summary>
+    /// <param name="workType">The work type.</param>
+    public void MarkAsDedicatedWorker(WorkTypeDef workType)
+    {
+        _dedicatedWorkTypes.Add(workType);
+    }
+
+    /// <summary>
+    ///     Checks whether the worker is dedicated for the specified work type.
+    /// </summary>
+    /// <param name="workType">The work type.</param>
+    /// <returns><c>true</c> if the worker is dedicated for the specified work type; otherwise <c>false</c>.</returns>
+    public bool IsDedicatedWorker(WorkTypeDef workType)
+    {
+        return _dedicatedWorkTypes.Contains(workType);
+    }
+
+    /// <summary>
+    ///     Clears all dedicated worker assignments for this pawn.
+    /// </summary>
+    public void ClearDedicatedWorkTypes()
+    {
+        _dedicatedWorkTypes.Clear();
+    }
+
+    /// <summary>
+    ///     Marks the worker as guaranteed for the specified work type.
+    /// </summary>
+    /// <param name="workType">The work type.</param>
+    public void MarkAsGuaranteedWorker(WorkTypeDef workType)
+    {
+        _guaranteedWorkTypes.Add(workType);
+    }
+
+    /// <summary>
+    ///     Checks whether the worker is guaranteed for the specified work type.
+    /// </summary>
+    /// <param name="workType">The work type.</param>
+    /// <returns><c>true</c> if the worker is guaranteed for the specified work type; otherwise <c>false</c>.</returns>
+    public bool IsGuaranteedWorker(WorkTypeDef workType)
+    {
+        return _guaranteedWorkTypes.Contains(workType);
+    }
+
+    /// <summary>
+    ///     Clears all guaranteed worker assignments for this pawn.
+    /// </summary>
+    public void ClearGuaranteedWorkTypes()
+    {
+        _guaranteedWorkTypes.Clear();
+    }
 
     /// <summary>
     ///     Retrieves the learning rate for a specified type of work.

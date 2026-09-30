@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using JetBrains.Annotations;
@@ -79,6 +79,26 @@ internal class WorkTypeAssignmentRule : DefCache<WorkTypeDef>, IExposable
     public int MinWorkerNumber;
 
     /// <summary>
+    ///     Indicates whether dedicated workers should use an overridden work priority.
+    /// </summary>
+    public bool UseDedicatedPriorityOverride;
+
+    /// <summary>
+    ///     The priority override to use for dedicated workers when enabled.
+    /// </summary>
+    public int DedicatedOverridePriority = 3;
+
+    /// <summary>
+    ///     Indicates whether guaranteed workers should use an overridden work priority.
+    /// </summary>
+    public bool UseGuaranteedPriorityOverride;
+
+    /// <summary>
+    ///     The priority override to use for guaranteed workers when enabled.
+    /// </summary>
+    public int GuaranteedOverridePriority = 3;
+
+    /// <summary>
     ///     Initializes a new instance of the <see cref="WorkTypeAssignmentRule" /> class.
     /// </summary>
     [UsedImplicitly]
@@ -118,7 +138,8 @@ internal class WorkTypeAssignmentRule : DefCache<WorkTypeDef>, IExposable
                 TriStateMode = false,
                 AllowDedicated = true,
                 Mode = DedicatedWorkerMode.CapablePawnRatio,
-                CapablePawnRatioFactor = 1f
+                CapablePawnRatioFactor = 1f,
+                SelectionPreference = DedicatedWorkerSettings.WorkerSelectionPreference.Best
             },
             AssignEveryone = null,
             AssignEveryonePriority = 1,
@@ -372,12 +393,46 @@ internal class WorkTypeAssignmentRule : DefCache<WorkTypeDef>, IExposable
                             default:
                                 throw new ArgumentOutOfRangeException();
                         }
+                        if (dedicated.SelectionPreference.HasValue)
+                        {
+                            stringBuilder.AppendIndented(
+                                "Предпочтение выбора: ".Colorize(ColoredText.ExpectationsColor), 2);
+                            stringBuilder.AppendLine(dedicated.SelectionPreference.Value ==
+                                DedicatedWorkerSettings.WorkerSelectionPreference.Best
+                                    ? "Лучшие работники"
+                                    : "Худшие работники");
+                        }
                     }
                 }
                 if (!anyValue)
                     stringBuilder.AppendLineIndented(Strings.WorkTypeRuleUndefinedSectionTooltip,
                         2);
             }
+            anyValue = false;
+            stringBuilder.AppendLineIndented(
+                "Переопределение приоритета".Colorize(ColoredText.ColonistCountColor), 1);
+            if (UseDedicatedPriorityOverride)
+            {
+                anyValue = true;
+                stringBuilder.AppendIndented(
+                    "Переопределить глобальный приоритет: ".Colorize(ColoredText.ExpectationsColor), 2);
+                stringBuilder.AppendLine(DedicatedOverridePriority.ToString());
+            }
+            if (!anyValue)
+                stringBuilder.AppendLineIndented("Не задано", 2);
+
+            anyValue = false;
+            stringBuilder.AppendLineIndented(
+                "Переопределение приоритета для гарантированных работников".Colorize(ColoredText.ColonistCountColor), 1);
+            if (UseGuaranteedPriorityOverride)
+            {
+                anyValue = true;
+                stringBuilder.AppendIndented(
+                    "Переопределить приоритет гарантированных работников: ".Colorize(ColoredText.ExpectationsColor), 2);
+                stringBuilder.AppendLine(GuaranteedOverridePriority.ToString());
+            }
+            if (!anyValue)
+                stringBuilder.AppendLineIndented("Не задано", 2);
             stringBuilder.AppendLineIndented(
                 $"{Strings.AllowedWorkersLabel}".Colorize(ColoredText.ColonistCountColor), 1);
             if (AllowedWorkers != null)
@@ -404,6 +459,10 @@ internal class WorkTypeAssignmentRule : DefCache<WorkTypeDef>, IExposable
             AssignEveryonePriorityDefault);
         Scribe_Values.Look(ref EnsureWorkerAssigned, nameof(EnsureWorkerAssigned));
         Scribe_Values.Look(ref MinWorkerNumber, nameof(MinWorkerNumber));
+        Scribe_Values.Look(ref UseDedicatedPriorityOverride, nameof(UseDedicatedPriorityOverride));
+        Scribe_Values.Look(ref DedicatedOverridePriority, nameof(DedicatedOverridePriority), 3);
+        Scribe_Values.Look(ref UseGuaranteedPriorityOverride, nameof(UseGuaranteedPriorityOverride));
+        Scribe_Values.Look(ref GuaranteedOverridePriority, nameof(GuaranteedOverridePriority), 3);
         Scribe_Deep.Look(ref DedicatedWorkerSettings, nameof(DedicatedWorkerSettings));
     }
 
@@ -431,7 +490,7 @@ internal class WorkTypeAssignmentRule : DefCache<WorkTypeDef>, IExposable
     {
         if (main == null) throw new ArgumentNullException(nameof(main));
         if (fallback == null) throw new ArgumentNullException(nameof(fallback));
-        return new WorkTypeAssignmentRule(main.DefName)
+        var combinedRule = new WorkTypeAssignmentRule(main.DefName)
         {
             EnsureWorkerAssigned = main.EnsureWorkerAssigned ?? fallback.EnsureWorkerAssigned,
             MinWorkerNumber = main.EnsureWorkerAssigned.HasValue
@@ -443,8 +502,23 @@ internal class WorkTypeAssignmentRule : DefCache<WorkTypeDef>, IExposable
                 : fallback.AssignEveryonePriority,
             DedicatedWorkerSettings = DedicatedWorkerSettings.Combine(main.DedicatedWorkerSettings!,
                 fallback.DedicatedWorkerSettings!),
-            AllowedWorkers = PawnFilter.Combine(main.AllowedWorkers!, fallback.AllowedWorkers!)
+            AllowedWorkers = PawnFilter.Combine(main.AllowedWorkers!, fallback.AllowedWorkers!),
+            UseDedicatedPriorityOverride = main.UseDedicatedPriorityOverride,
+            DedicatedOverridePriority = main.DedicatedOverridePriority,
+            UseGuaranteedPriorityOverride = main.UseGuaranteedPriorityOverride,
+            GuaranteedOverridePriority = main.GuaranteedOverridePriority
         };
+        if (main.DedicatedWorkerSettings?.AllowDedicated == null)
+        {
+            combinedRule.UseDedicatedPriorityOverride = fallback.UseDedicatedPriorityOverride;
+            combinedRule.DedicatedOverridePriority = fallback.DedicatedOverridePriority;
+        }
+        if (main.EnsureWorkerAssigned == null)
+        {
+            combinedRule.UseGuaranteedPriorityOverride = fallback.UseGuaranteedPriorityOverride;
+            combinedRule.GuaranteedOverridePriority = fallback.GuaranteedOverridePriority;
+        }
+        return combinedRule;
     }
 
     /// <summary>
@@ -464,7 +538,10 @@ internal class WorkTypeAssignmentRule : DefCache<WorkTypeDef>, IExposable
             },
             DedicatedWorkerSettings = new DedicatedWorkerSettings
             {
-                TriStateMode = workTypeDefName != null
+                TriStateMode = workTypeDefName != null,
+                SelectionPreference = workTypeDefName != null
+                    ? null
+                    : DedicatedWorkerSettings.WorkerSelectionPreference.Best
             }
         };
     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
@@ -89,6 +89,30 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
                 if (!pawnCache.IsManagedWork(workType))
                     continue;
                 var priority = pawnCache.GetWorkPriority(workType);
+                var rule = _managedWorkTypeRules[workType];
+
+                var isDedicatedWorker = pawnCache.IsDedicatedWorker(workType);
+                var isGuaranteedWorker = pawnCache.IsGuaranteedWorker(workType);
+
+                if (isDedicatedWorker && rule.UseDedicatedPriorityOverride)
+                {
+                    priority = Mathf.Clamp(rule.DedicatedOverridePriority, 1,
+                        WorkManagerMod.Settings.MaxWorkTypePriority);
+                }
+                else if (isGuaranteedWorker && !isDedicatedWorker && rule.EnsureWorkerAssigned == true)
+                {
+                    if (rule.UseGuaranteedPriorityOverride)
+                    {
+                        priority = Mathf.Clamp(rule.GuaranteedOverridePriority, 1,
+                            WorkManagerMod.Settings.MaxWorkTypePriority);
+                    }
+                    else if (rule.UseDedicatedPriorityOverride)
+                    {
+                        priority = Mathf.Clamp(rule.DedicatedOverridePriority, 1,
+                            WorkManagerMod.Settings.MaxWorkTypePriority);
+                    }
+                }
+
                 WorkTypePriorityHelper.SetPriority(pawnCache.Pawn, workType, priority);
             }
         }
@@ -122,6 +146,7 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
             }
             if (bestWorker == null) break;
             bestWorker.SetWorkPriority(rule.Def!, WorkManagerMod.Settings.DedicatedWorkerPriority);
+            bestWorker.MarkAsDedicatedWorker(rule.Def!);
             workerCount++;
             pawnScores.Remove(bestWorker);
         }
@@ -189,10 +214,78 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
                 continue;
             foreach (var workType in relevantWorkTypes)
             {
+                if (pawnCache.IsGuaranteedWorker(workType))
+                    continue;
+
                 if (!pawnCache.IsManagedWork(workType) || !pawnCache.IsAllowedWorker(workType) ||
                     pawnCache.IsBadWork(workType) || pawnCache.IsDangerousWork(workType))
                     continue;
                 pawnCache.SetWorkPriority(workType, priorities[workType]);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Assigns guaranteed workers to work types that require at least a minimum number of workers.
+    /// </summary>
+    private void AssignGuaranteedWorkers()
+    {
+        foreach (var pc in _pawnCache.Values)
+        {
+            pc.ClearGuaranteedWorkTypes();
+        }
+        if (_capablePawns.Count == 0) return;
+#if DEBUG
+        Logger.LogMessage("Assigning guaranteed workers...");
+#endif
+        var rulesWithGuarantee = new List<WorkTypeAssignmentRule>();
+        foreach (var rule in _managedWorkTypeRules.Values)
+        {
+            if (rule.EnsureWorkerAssigned == true)
+            {
+                rulesWithGuarantee.Add(rule);
+            }
+        }
+        if (rulesWithGuarantee.Count == 0) return;
+        foreach (var rule in rulesWithGuarantee)
+        {
+            var def = rule.Def!;
+            var allCandidates = new List<PawnCache>();
+            foreach (var pc in _capablePawns)
+            {
+                if (pc.IsManaged &&
+                    pc.IsManagedWork(def) &&
+                    pc.IsAllowedWorker(def) &&
+                    !pc.IsBadWork(def) &&
+                    !pc.IsDangerousWork(def))
+                {
+                    allCandidates.Add(pc);
+                }
+            }
+            if (allCandidates.Count == 0) continue;
+            var selectionPreference = rule.DedicatedWorkerSettings?.SelectionPreference ??
+                                      DedicatedWorkerSettings.WorkerSelectionPreference.Best;
+            var workerScores = GetWorkerBaseScoresWithPreference(allCandidates, def, selectionPreference);
+            var sortedCandidates = allCandidates
+                .OrderByDescending(pc => workerScores[pc])
+                .ThenBy(pc => pc.Pawn.thingIDNumber)
+                .Take(rule.MinWorkerNumber)
+                .ToList();
+            var guaranteedCount = Math.Min(rule.MinWorkerNumber, sortedCandidates.Count);
+            for (var i = 0; i < guaranteedCount; i++)
+            {
+                var candidate = sortedCandidates[i];
+                var priority = rule.UseGuaranteedPriorityOverride
+                    ? Mathf.Clamp(rule.GuaranteedOverridePriority, 1,
+                        WorkManagerMod.Settings.MaxWorkTypePriority)
+                    : Mathf.Clamp(WorkManagerMod.Settings.DedicatedWorkerPriority, 1,
+                        WorkManagerMod.Settings.MaxWorkTypePriority);
+                candidate.MarkAsGuaranteedWorker(def);
+                candidate.SetWorkPriority(def, priority);
+#if DEBUG
+                Logger.LogMessage(
+                    $"Assigning {candidate.Pawn.LabelShort} as guaranteed worker for {rule.Label} with priority {priority} (score: {workerScores[candidate]:F2}, preference: {selectionPreference})");
+#endif
             }
         }
     }
@@ -208,6 +301,10 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
     /// </remarks>
     private void AssignDedicatedWorkers()
     {
+        foreach (var pc in _pawnCache.Values)
+        {
+            pc.ClearDedicatedWorkTypes();
+        }
         if (_capablePawns.Count == 0) return;
 #if DEBUG
         Logger.LogMessage("Assigning dedicated workers...");
@@ -271,7 +368,10 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
         {
             if (pc.IsActiveWork(def) && pc.GetWorkPriority(def) <=
                 WorkManagerMod.Settings.DedicatedWorkerPriority)
+            {
                 workerCount++;
+                pc.MarkAsDedicatedWorker(def);
+            }
         }
         if (workerCount >= targetWorkersCount) return;
         var pawnScores = GetDedicatedWorkersScores(goodWorkers, def, relevantRules);
@@ -607,6 +707,61 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
     }
 
     /// <summary>
+    ///     Calculates base suitability scores for pawns based on skill, passion, and learning rate,
+    ///     taking worker selection preference into account.
+    /// </summary>
+    /// <param name="pawns">The collection of pawns to evaluate.</param>
+    /// <param name="workType">The work type for which scores are calculated.</param>
+    /// <param name="selectionPreference">The worker selection preference (best or worst).</param>
+    /// <returns>A dictionary mapping each pawn to its base score.</returns>
+    private static Dictionary<PawnCache, float> GetWorkerBaseScoresWithPreference(
+        IReadOnlyCollection<PawnCache> pawns, WorkTypeDef workType,
+        DedicatedWorkerSettings.WorkerSelectionPreference selectionPreference)
+    {
+        var count = pawns.Count;
+        var pawnScores = new Dictionary<PawnCache, float>(count);
+        var pawnSkills = new Dictionary<PawnCache, int>(count);
+        var pawnLearningRates = new Dictionary<PawnCache, float>(count);
+        int skillMin = int.MaxValue, skillMax = int.MinValue;
+        float learningMin = float.MaxValue, learningMax = float.MinValue;
+        foreach (var pc in pawns)
+        {
+            var skill = pc.GetWorkSkillLevel(workType);
+            pawnSkills[pc] = skill;
+            if (skill < skillMin) skillMin = skill;
+            if (skill > skillMax) skillMax = skill;
+            var learning = pc.GetLearningRate(workType);
+            pawnLearningRates[pc] = learning;
+            if (learning < learningMin) learningMin = learning;
+            if (learning > learningMax) learningMax = learning;
+        }
+        var skillRange = new FloatRange(skillMin, skillMax);
+        var learningRange = new FloatRange(learningMin, learningMax);
+        foreach (var pc in pawns)
+        {
+            if (!pc.IsManagedWork(workType)) continue;
+            var normalizedSkill = MathHelper.NormalizeValue(pawnSkills[pc], skillRange);
+            var normalizedPassion = PassionHelper.GetPassionScore(pc.GetWorkPassion(workType));
+            var normalizedLearningRate =
+                MathHelper.NormalizeValue(pawnLearningRates[pc], learningRange);
+            var baseScore = WorkManagerMod.Settings.DedicatedWorkerSkillScoreFactor * normalizedSkill +
+                            WorkManagerMod.Settings.DedicatedWorkerPassionScoreFactor *
+                            normalizedPassion +
+                            WorkManagerMod.Settings.DedicatedWorkerLearningRateScoreFactor *
+                            normalizedLearningRate;
+            if (selectionPreference == DedicatedWorkerSettings.WorkerSelectionPreference.Worst)
+            {
+                var maxPossibleScore = WorkManagerMod.Settings.DedicatedWorkerSkillScoreFactor +
+                                       WorkManagerMod.Settings.DedicatedWorkerPassionScoreFactor +
+                                       WorkManagerMod.Settings.DedicatedWorkerLearningRateScoreFactor;
+                baseScore = maxPossibleScore - baseScore;
+            }
+            pawnScores.Add(pc, baseScore);
+        }
+        return pawnScores;
+    }
+
+    /// <summary>
     ///     Calculates and returns a dictionary of scores for a collection of pawns, indicating their suitability as
     ///     dedicated workers for a specified work type based on various factors.
     /// </summary>
@@ -663,62 +818,45 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
         if (pawns == null) throw new ArgumentNullException(nameof(pawns));
         if (workType == null) throw new ArgumentNullException(nameof(workType));
         if (rules == null) throw new ArgumentNullException(nameof(rules));
+        var rule = rules.FirstOrDefault(r => r.Def == workType);
+        var selectionPreference = rule?.DedicatedWorkerSettings?.SelectionPreference ??
+                                  DedicatedWorkerSettings.WorkerSelectionPreference.Best;
+        var baseScores = GetWorkerBaseScoresWithPreference(pawns, workType, selectionPreference);
         var count = pawns.Count;
         var pawnScores = new Dictionary<PawnCache, float>(count);
-        var pawnSkills = new Dictionary<PawnCache, int>(count);
         var pawnDedicationsCounts = new Dictionary<PawnCache, int>(count);
-        var pawnLearningRates = new Dictionary<PawnCache, float>(count);
-        int skillMin = int.MaxValue, skillMax = int.MinValue;
         int dedicationsMin = int.MaxValue, dedicationsMax = int.MinValue;
-        float learningMin = float.MaxValue, learningMax = float.MinValue;
         foreach (var pc in pawns)
         {
-            var skill = pc.GetWorkSkillLevel(workType);
-            pawnSkills[pc] = skill;
-            if (skill < skillMin) skillMin = skill;
-            if (skill > skillMax) skillMax = skill;
             var dedications = 0;
-            foreach (var rule in rules)
+            foreach (var r in rules)
             {
-                if (pc.IsActiveWork(rule.Def!) && pc.GetWorkPriority(rule.Def!) <=
+                if (pc.IsActiveWork(r.Def!) && pc.GetWorkPriority(r.Def!) <=
                     WorkManagerMod.Settings.DedicatedWorkerPriority)
                     dedications++;
             }
             pawnDedicationsCounts[pc] = dedications;
             if (dedications < dedicationsMin) dedicationsMin = dedications;
             if (dedications > dedicationsMax) dedicationsMax = dedications;
-            var learning = pc.GetLearningRate(workType);
-            pawnLearningRates[pc] = learning;
-            if (learning < learningMin) learningMin = learning;
-            if (learning > learningMax) learningMax = learning;
         }
-        var skillRange = new FloatRange(skillMin, skillMax);
         var dedicationsRange = new FloatRange(dedicationsMin, dedicationsMax);
-        var learningRange = new FloatRange(learningMin, learningMax);
         foreach (var pc in pawns)
         {
             if (!pc.IsManagedWork(workType)) continue;
-            var normalizedSkill = MathHelper.NormalizeValue(pawnSkills[pc], skillRange);
-            var normalizedPassion = PassionHelper.GetPassionScore(pc.GetWorkPassion(workType));
-            var normalizedLearningRate =
-                MathHelper.NormalizeValue(pawnLearningRates[pc], learningRange);
+            var baseScore = baseScores[pc];
             var normalizedDedications =
                 MathHelper.NormalizeValue(pawnDedicationsCounts[pc], dedicationsRange);
-            var score = WorkManagerMod.Settings.DedicatedWorkerSkillScoreFactor * normalizedSkill +
-                        WorkManagerMod.Settings.DedicatedWorkerPassionScoreFactor *
-                        normalizedPassion +
-                        WorkManagerMod.Settings.DedicatedWorkerLearningRateScoreFactor *
-                        normalizedLearningRate -
+            var score = baseScore -
                         WorkManagerMod.Settings.DedicatedWorkerWorkCountScoreFactor *
                         normalizedDedications;
             if (pc.IsDangerousWork(workType)) score -= DangerousWorkScorePenalty;
             pawnScores.Add(pc, score);
 #if DEBUG
             Logger.LogMessage($"{workType.defName} score of {pc.Pawn.LabelShortCap} =" +
-                              $" S({normalizedSkill:F1}[{skillRange.TrueMin:N0};{skillRange.TrueMax:N0}])*{WorkManagerMod.Settings.DedicatedWorkerSkillScoreFactor:F1}" +
-                              $" + P({normalizedPassion:F1}*{WorkManagerMod.Settings.DedicatedWorkerPassionScoreFactor:F1})" +
-                              $" + L({normalizedLearningRate:F1}[{learningRange.TrueMin:F2};{learningRange.TrueMax:F2}])*{WorkManagerMod.Settings.DedicatedWorkerLearningRateScoreFactor:F1}" +
+                              $" base({baseScore:F2})" +
                               $" - D({normalizedDedications:F1}[{dedicationsRange.TrueMin:N0};{dedicationsRange.TrueMax:N0}])*{WorkManagerMod.Settings.DedicatedWorkerWorkCountScoreFactor:F1}" +
+                              (pc.IsDangerousWork(workType) ? $" - {DangerousWorkScorePenalty}(dangerous)" : "") +
+                              (rule?.DedicatedWorkerSettings?.SelectionPreference.HasValue == true ? $" (preference: {selectionPreference})" : "") +
                               $" = {score:F2}");
 #endif
         }
@@ -833,6 +971,7 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
         foreach (var pc in dedicatedSet)
         {
             pc.SetWorkPriority(def, WorkManagerMod.Settings.DedicatedWorkerPriority);
+            pc.MarkAsDedicatedWorker(def);
         }
         return true;
     }
@@ -965,6 +1104,7 @@ public class WorkPriorityUpdater(Map map) : MapComponent(map)
     /// </remarks>
     private void UpdateWorkPriorities()
     {
+        AssignGuaranteedWorkers();
         AssignCommonWork();
         if (WorkManagerMod.Settings.UseDedicatedWorkers)
             AssignDedicatedWorkers();

@@ -53,6 +53,36 @@ public partial class Settings
         DedicatedWorkersPawnSkillInputLocalId + 100;
 
     /// <summary>
+    ///     Provides a function to get the label for a nullable worker selection preference.
+    /// </summary>
+    private static readonly Func<DedicatedWorkerSettings.WorkerSelectionPreference?, string>
+        WorkerSelectionPreferenceLabel =
+            pref => pref == null ? "* По умолчанию *" : pref.Value.ToString();
+
+    /// <summary>
+    ///     Provides a function to get the tooltip for a nullable worker selection preference.
+    /// </summary>
+    private static readonly Func<DedicatedWorkerSettings.WorkerSelectionPreference?, string>
+        WorkerSelectionPreferenceTooltip =
+            pref => pref switch
+            {
+                DedicatedWorkerSettings.WorkerSelectionPreference.Best =>
+                    "Выбирать лучших доступных работников",
+                DedicatedWorkerSettings.WorkerSelectionPreference.Worst =>
+                    "Выбирать худших доступных работников (например, для простых или неприятных работ)",
+                _ => "Наследовать значение из правил по умолчанию"
+            };
+
+    /// <summary>
+    ///     Caches all available nullable worker selection preferences.
+    /// </summary>
+    private static readonly List<DedicatedWorkerSettings.WorkerSelectionPreference?>
+        WorkerSelectionPreferencesCache =
+            new DedicatedWorkerSettings.WorkerSelectionPreference?[] { null }
+                .Concat(Enum.GetValues(typeof(DedicatedWorkerSettings.WorkerSelectionPreference))
+                    .Cast<DedicatedWorkerSettings.WorkerSelectionPreference?>()).ToList();
+
+    /// <summary>
     ///     Provides a function to get the label for a dedicated worker mode.
     /// </summary>
     private static readonly Func<DedicatedWorkerMode, string> DedicatedWorkerModeLabel =
@@ -248,9 +278,37 @@ public partial class Settings
                 Strings.GetEnsureWorkerAssignedTooltip(true), null, out assignmentRect);
         }
         if (rule.EnsureWorkerAssigned == true)
+        {
             assignmentContentHeight += Fields.DoLabeledIntegerSlider(assignmentRect, 1, null,
                 Strings.MinWorkerNumberLabel, Strings.MinWorkerNumberTooltip,
                 ref rule.MinWorkerNumber, 1, 10, 1, null, out assignmentRect);
+            assignmentContentHeight += Fields.DoLabeledCheckbox(
+                assignmentRect,
+                1,
+                null,
+                ref rule.UseGuaranteedPriorityOverride,
+                "Приоритет гарантированных работников",
+                "Включить отдельный приоритет для гарантированных работников",
+                null,
+                out assignmentRect
+            );
+            if (rule.UseGuaranteedPriorityOverride)
+            {
+                assignmentContentHeight += Fields.DoLabeledIntegerSlider(
+                    assignmentRect,
+                    2,
+                    null,
+                    "Уровень приоритета",
+                    $"Уровень приоритета, который будет установлен гарантированным работникам (от 1 до {WorkManagerMod.Settings.MaxWorkTypePriority})",
+                    ref rule.GuaranteedOverridePriority,
+                    1,
+                    WorkManagerMod.Settings.MaxWorkTypePriority,
+                    1,
+                    null,
+                    out assignmentRect
+                );
+            }
+        }
         if (defaultRule)
         {
             var value = rule.AssignEveryone == true;
@@ -314,6 +372,34 @@ public partial class Settings
         }
         if (rule.DedicatedWorkerSettings.AllowDedicated == true)
         {
+            var selectionPref = rule.DedicatedWorkerSettings.SelectionPreference;
+            if (defaultRule)
+            {
+                dedicatedWorkersContentHeight += Fields.DoLabeledSelector(dedicatedWorkersRect, 1,
+                    null,
+                    "Предпочтение выбора работников",
+                    "Определяет, выбирать лучших или худших работников для этой работы",
+                    selectionPref ?? DedicatedWorkerSettings.WorkerSelectionPreference.Best,
+                    Enum.GetValues(typeof(DedicatedWorkerSettings.WorkerSelectionPreference))
+                        .Cast<DedicatedWorkerSettings.WorkerSelectionPreference>().ToList(),
+                    pref => pref.ToString(),
+                    pref => pref == DedicatedWorkerSettings.WorkerSelectionPreference.Best
+                        ? "Выбирать лучших доступных работников"
+                        : "Выбирать худших доступных работников (например, для простых или неприятных работ)",
+                    pref => { rule.DedicatedWorkerSettings.SelectionPreference = pref; },
+                    null, out dedicatedWorkersRect);
+            }
+            else
+            {
+                dedicatedWorkersContentHeight += Fields.DoLabeledSelector(dedicatedWorkersRect, 1,
+                    null,
+                    "Предпочтение выбора работников",
+                    "Определяет, выбирать лучших или худших работников для этой работы",
+                    selectionPref, WorkerSelectionPreferencesCache,
+                    WorkerSelectionPreferenceLabel, WorkerSelectionPreferenceTooltip,
+                    pref => { rule.DedicatedWorkerSettings.SelectionPreference = pref; },
+                    null, out dedicatedWorkersRect);
+            }
             var mode = rule.DedicatedWorkerSettings.Mode;
             if (defaultRule)
                 dedicatedWorkersContentHeight += Fields.DoLabeledSelector(dedicatedWorkersRect, 1,
@@ -378,6 +464,33 @@ public partial class Settings
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
+            }
+            dedicatedWorkersContentHeight += Fields.DoLabeledCheckbox(
+                dedicatedWorkersRect,
+                0,
+                null,
+                ref rule.UseDedicatedPriorityOverride,
+                "Переопределить глобальный приоритет",
+                "Если включено, для выделенных работников будет использован фиксированный приоритет вместо значения, рассчитанного глобальными правилами",
+                null,
+                out dedicatedWorkersRect
+            );
+
+            if (rule.UseDedicatedPriorityOverride)
+            {
+                dedicatedWorkersContentHeight += Fields.DoLabeledIntegerSlider(
+                    dedicatedWorkersRect,
+                    1,
+                    null,
+                    "Приоритет для переопределения",
+                    $"Уровень приоритета, который будет установлен выделенным работникам вместо глобального значения (от 1 до {WorkManagerMod.Settings.MaxWorkTypePriority})",
+                    ref rule.DedicatedOverridePriority,
+                    1,
+                    WorkManagerMod.Settings.MaxWorkTypePriority,
+                    1,
+                    null,
+                    out dedicatedWorkersRect
+                );
             }
         }
         if (Event.current.type == EventType.Layout)
