@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 
 <LanguageData>
 	<LordKuper.WorkManager.ModTitle>Менеджер работ</LordKuper.WorkManager.ModTitle>
@@ -100,6 +100,28 @@
 	<LordKuper.WorkManager.DedicatedWorkerMode.CapablePawnRatio.Tooltip>Количество выделенных работников будет назначено равным числу способных пешек, делённому на число типов работ, использующих выделенных работников, с округлением вверх до ближайшего целого.\nНапример, если в колонии 6 способных пешек и 5 типов работ используют выделенных работников, то каждому из этих 5 типов будет назначено по 2 выделенных работника. (6 / 5 = 1,2 ≈ 2)</LordKuper.WorkManager.DedicatedWorkerMode.CapablePawnRatio.Tooltip>
 	<LordKuper.WorkManager.DedicatedWorkerMode.PawnCount.Label>Число пешек</LordKuper.WorkManager.DedicatedWorkerMode.PawnCount.Label>
 	<LordKuper.WorkManager.DedicatedWorkerMode.PawnCount.Tooltip>Количество выделенных работников будет назначено как кратное числу пешек, соответствующих заданным критериям отбора.</LordKuper.WorkManager.DedicatedWorkerMode.PawnCount.Tooltip>
+	<LordKuper.WorkManager.WorkerSelectionPreference.Best.Label>Лучший</LordKuper.WorkManager.WorkerSelectionPreference.Best.Label>
+	<LordKuper.WorkManager.WorkerSelectionPreference.Best.Tooltip>Выбирать лучших доступных работников.</LordKuper.WorkManager.WorkerSelectionPreference.Best.Tooltip>
+	<LordKuper.WorkManager.WorkerSelectionPreference.Worst.Label>Худший</LordKuper.WorkManager.WorkerSelectionPreference.Worst.Label>
+	<LordKuper.WorkManager.WorkerSelectionPreference.Worst.Tooltip>Выбирать худших доступных работников (например, для простых или неприятных работ).</LordKuper.WorkManager.WorkerSelectionPreference.Worst.Tooltip>
+	<LordKuper.WorkManager.Settings.WorkTypes.WorkerSelectionPreferenceLabel>Предпочтение выбора работников</LordKuper.WorkManager.Settings.WorkTypes.WorkerSelectionPreferenceLabel>
+	<LordKuper.WorkManager.Settings.WorkTypes.WorkerSelectionPreferenceTooltip>Определяет, выбирать лучших или худших работников для этой работы.</LordKuper.WorkManager.Settings.WorkTypes.WorkerSelectionPreferenceTooltip>
+	<LordKuper.WorkManager.Settings.WorkTypes.UseGuaranteedPriorityOverrideLabel>Приоритет гарантированных работников</LordKuper.WorkManager.Settings.WorkTypes.UseGuaranteedPriorityOverrideLabel>
+	<LordKuper.WorkManager.Settings.WorkTypes.UseGuaranteedPriorityOverrideTooltip>Включить отдельный приоритет для гарантированных работников.</LordKuper.WorkManager.Settings.WorkTypes.UseGuaranteedPriorityOverrideTooltip>
+	<LordKuper.WorkManager.Settings.WorkTypes.GuaranteedOverridePriorityLabel>Уровень приоритета</LordKuper.WorkManager.Settings.WorkTypes.GuaranteedOverridePriorityLabel>
+	<LordKuper.WorkManager.Settings.WorkTypes.GuaranteedOverridePriorityLabelTooltip>Уровень приоритета, который будет установлен гарантированным работникам (от 1 до {0}).</LordKuper.WorkManager.Settings.WorkTypes.GuaranteedOverridePriorityLabelTooltip>
+	<LordKuper.WorkManager.Settings.WorkTypes.UseDedicatedPriorityOverrideLabel>Переопределить глобальный приоритет</LordKuper.WorkManager.Settings.WorkTypes.UseDedicatedPriorityOverrideLabel>
+	<LordKuper.WorkManager.Settings.WorkTypes.UseDedicatedPriorityOverrideTooltip>Если включено, для выделенных работников будет использован фиксированный приоритет вместо значения, рассчитанного глобальными правилами.</LordKuper.WorkManager.Settings.WorkTypes.UseDedicatedPriorityOverrideTooltip>
+	<LordKuper.WorkManager.Settings.WorkTypes.DedicatedOverridePriorityLabel>Приоритет для переопределения</LordKuper.WorkManager.Settings.WorkTypes.DedicatedOverridePriorityLabel>
+	<LordKuper.WorkManager.Settings.WorkTypes.DedicatedOverridePriorityLabelTooltip>Уровень приоритета, который будет установлен выделенным работникам вместо глобального значения (от 1 до {0}).</LordKuper.WorkManager.Settings.WorkTypes.DedicatedOverridePriorityLabelTooltip>
+	<LordKuper.WorkManager.Settings.WorkTypes.SummarySelectionPreference>Предпочтение выбора: </LordKuper.WorkManager.Settings.WorkTypes.SummarySelectionPreference>
+	<LordKuper.WorkManager.Settings.WorkTypes.SummarySelectionBest>Лучшие работники</LordKuper.WorkManager.Settings.WorkTypes.SummarySelectionBest>
+	<LordKuper.WorkManager.Settings.WorkTypes.SummarySelectionWorst>Худшие работники</LordKuper.WorkManager.Settings.WorkTypes.SummarySelectionWorst>
+	<LordKuper.WorkManager.Settings.WorkTypes.SummaryPriorityOverride>Переопределение приоритета</LordKuper.WorkManager.Settings.WorkTypes.SummaryPriorityOverride>
+	<LordKuper.WorkManager.Settings.WorkTypes.SummaryOverrideGlobalPriority>Переопределить глобальный приоритет: </LordKuper.WorkManager.Settings.WorkTypes.SummaryOverrideGlobalPriority>
+	<LordKuper.WorkManager.Settings.WorkTypes.SummaryGuaranteedPriorityOverride>Переопределение приоритета для гарантированных работников</LordKuper.WorkManager.Settings.WorkTypes.SummaryGuaranteedPriorityOverride>
+	<LordKuper.WorkManager.Settings.WorkTypes.SummaryOverrideGuaranteedPriority>Переопределить приоритет гарантированных работников: </LordKuper.WorkManager.Settings.WorkTypes.SummaryOverrideGuaranteedPriority>
+	<LordKuper.WorkManager.Settings.WorkTypes.SummaryNotSet>Не задано</LordKuper.WorkManager.Settings.WorkTypes.SummaryNotSet>
 	<WorkManager.GlobalEnableTooltip>Включить систему автоматического назначения приоритетов типов работ</WorkManager.GlobalEnableTooltip>
 	<WorkManager.GlobalDisableTooltip>Отключить систему автоматического назначения приоритетов типов работ</WorkManager.GlobalDisableTooltip>
 	<WorkManager.PawnEnableTooltip>Включить автоматическое назначение приоритетов типов работ для пешки</WorkManager.PawnEnableTooltip>

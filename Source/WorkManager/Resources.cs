@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using UnityEngine;
 using Verse;
@@ -116,6 +116,50 @@ internal static class Resources
             {
                 return Tooltips.GetOrAdd(mode,
                     dwm => $"{WorkManagerMod.ModId}.{nameof(DedicatedWorkerMode)}.{dwm}.Tooltip"
+                        .Translate());
+            }
+        }
+
+        /// <summary>
+        ///     Provides localized labels and tooltips for <see cref="DedicatedWorkerSettings.WorkerSelectionPreference" /> values.
+        /// </summary>
+        internal static class WorkerSelectionPreference
+        {
+            private static readonly ConcurrentDictionary<DedicatedWorkerSettings.WorkerSelectionPreference, string>
+                Labels = new();
+
+            private static readonly ConcurrentDictionary<DedicatedWorkerSettings.WorkerSelectionPreference, string>
+                Tooltips = new();
+
+            public static string GetWorkerSelectionPreferenceLabel(
+                DedicatedWorkerSettings.WorkerSelectionPreference? preference)
+            {
+                return preference == null
+                    ? Settings.WorkTypes.DefaultWorkTypeRuleLabel
+                    : GetWorkerSelectionPreferenceLabel(preference.Value);
+            }
+
+            public static string GetWorkerSelectionPreferenceLabel(
+                DedicatedWorkerSettings.WorkerSelectionPreference preference)
+            {
+                return Labels.GetOrAdd(preference,
+                    p => $"{WorkManagerMod.ModId}.{nameof(DedicatedWorkerSettings.WorkerSelectionPreference)}.{p}.Label"
+                        .Translate());
+            }
+
+            public static string GetWorkerSelectionPreferenceTooltip(
+                DedicatedWorkerSettings.WorkerSelectionPreference? preference)
+            {
+                return preference == null
+                    ? Settings.WorkTypes.WorkTypeRuleUndefinedSettingTooltip
+                    : GetWorkerSelectionPreferenceTooltip(preference.Value);
+            }
+
+            public static string GetWorkerSelectionPreferenceTooltip(
+                DedicatedWorkerSettings.WorkerSelectionPreference preference)
+            {
+                return Tooltips.GetOrAdd(preference,
+                    p => $"{WorkManagerMod.ModId}.{nameof(DedicatedWorkerSettings.WorkerSelectionPreference)}.{p}.Tooltip"
                         .Translate());
             }
         }
@@ -532,6 +576,78 @@ internal static class Resources
 
                 public static readonly string WorkTypeRuleUndefinedSettingTooltip =
                     $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(WorkTypeRuleUndefinedSettingTooltip)}"
+                        .Translate();
+
+                internal static readonly string WorkerSelectionPreferenceLabel =
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(WorkerSelectionPreferenceLabel)}"
+                        .Translate();
+
+                internal static readonly string WorkerSelectionPreferenceTooltip =
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(WorkerSelectionPreferenceTooltip)}"
+                        .Translate();
+
+                internal static readonly string UseGuaranteedPriorityOverrideLabel =
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(UseGuaranteedPriorityOverrideLabel)}"
+                        .Translate();
+
+                internal static readonly string UseGuaranteedPriorityOverrideTooltip =
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(UseGuaranteedPriorityOverrideTooltip)}"
+                        .Translate();
+
+                internal static readonly string GuaranteedOverridePriorityLabel =
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(GuaranteedOverridePriorityLabel)}"
+                        .Translate();
+
+                public static string GetGuaranteedOverridePriorityTooltip(int maxPriority) =>
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(GuaranteedOverridePriorityLabel)}Tooltip"
+                        .Translate(maxPriority);
+
+                internal static readonly string UseDedicatedPriorityOverrideLabel =
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(UseDedicatedPriorityOverrideLabel)}"
+                        .Translate();
+
+                internal static readonly string UseDedicatedPriorityOverrideTooltip =
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(UseDedicatedPriorityOverrideTooltip)}"
+                        .Translate();
+
+                internal static readonly string DedicatedOverridePriorityLabel =
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(DedicatedOverridePriorityLabel)}"
+                        .Translate();
+
+                public static string GetDedicatedOverridePriorityTooltip(int maxPriority) =>
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(DedicatedOverridePriorityLabel)}Tooltip"
+                        .Translate(maxPriority);
+
+                internal static readonly string SummarySelectionPreference =
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(SummarySelectionPreference)}"
+                        .Translate();
+
+                internal static readonly string SummarySelectionBest =
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(SummarySelectionBest)}"
+                        .Translate();
+
+                internal static readonly string SummarySelectionWorst =
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(SummarySelectionWorst)}"
+                        .Translate();
+
+                internal static readonly string SummaryPriorityOverride =
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(SummaryPriorityOverride)}"
+                        .Translate();
+
+                internal static readonly string SummaryOverrideGlobalPriority =
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(SummaryOverrideGlobalPriority)}"
+                        .Translate();
+
+                internal static readonly string SummaryGuaranteedPriorityOverride =
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(SummaryGuaranteedPriorityOverride)}"
+                        .Translate();
+
+                internal static readonly string SummaryOverrideGuaranteedPriority =
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(SummaryOverrideGuaranteedPriority)}"
+                        .Translate();
+
+                internal static readonly string SummaryNotSet =
+                    $"{WorkManagerMod.ModId}.{nameof(Settings)}.{nameof(WorkTypes)}.{nameof(SummaryNotSet)}"
                         .Translate();
 
                 private static string? _allowDedicatedWorkerTooltip;

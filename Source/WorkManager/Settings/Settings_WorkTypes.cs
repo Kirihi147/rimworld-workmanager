@@ -53,30 +53,40 @@ public partial class Settings
         DedicatedWorkersPawnSkillInputLocalId + 100;
 
     /// <summary>
+    ///     Provides a function to get the label for a worker selection preference.
+    /// </summary>
+    private static readonly Func<DedicatedWorkerSettings.WorkerSelectionPreference, string>
+        WorkerSelectionPreferenceLabel =
+            Resources.Strings.WorkerSelectionPreference.GetWorkerSelectionPreferenceLabel;
+
+    /// <summary>
+    ///     Provides a function to get the tooltip for a worker selection preference.
+    /// </summary>
+    private static readonly Func<DedicatedWorkerSettings.WorkerSelectionPreference, string>
+        WorkerSelectionPreferenceTooltip =
+            Resources.Strings.WorkerSelectionPreference.GetWorkerSelectionPreferenceTooltip;
+
+    /// <summary>
     ///     Provides a function to get the label for a nullable worker selection preference.
     /// </summary>
     private static readonly Func<DedicatedWorkerSettings.WorkerSelectionPreference?, string>
-        WorkerSelectionPreferenceLabel =
-            pref => pref switch
-            {
-                DedicatedWorkerSettings.WorkerSelectionPreference.Best => "Лучший",
-                DedicatedWorkerSettings.WorkerSelectionPreference.Worst => "Худший",
-                _ => "* По умолчанию *"
-            };
+        WorkerSelectionNullablePreferenceLabel =
+            Resources.Strings.WorkerSelectionPreference.GetWorkerSelectionPreferenceLabel;
 
     /// <summary>
     ///     Provides a function to get the tooltip for a nullable worker selection preference.
     /// </summary>
     private static readonly Func<DedicatedWorkerSettings.WorkerSelectionPreference?, string>
-        WorkerSelectionPreferenceTooltip =
-            pref => pref switch
-            {
-                DedicatedWorkerSettings.WorkerSelectionPreference.Best =>
-                    "Выбирать лучших доступных работников",
-                DedicatedWorkerSettings.WorkerSelectionPreference.Worst =>
-                    "Выбирать худших доступных работников (например, для простых или неприятных работ)",
-                _ => "Наследовать значение из правил по умолчанию"
-            };
+        WorkerSelectionNullablePreferenceTooltip =
+            Resources.Strings.WorkerSelectionPreference.GetWorkerSelectionPreferenceTooltip;
+
+    /// <summary>
+    ///     Caches all available worker selection preferences.
+    /// </summary>
+    private static readonly List<DedicatedWorkerSettings.WorkerSelectionPreference>
+        DedicatedWorkerSelectionPreferencesCache =
+            Enum.GetValues(typeof(DedicatedWorkerSettings.WorkerSelectionPreference))
+                .Cast<DedicatedWorkerSettings.WorkerSelectionPreference>().ToList();
 
     /// <summary>
     ///     Caches all available nullable worker selection preferences.
@@ -294,8 +304,8 @@ public partial class Settings
                 1,
                 null,
                 ref rule.UseGuaranteedPriorityOverride,
-                "Приоритет гарантированных работников",
-                "Включить отдельный приоритет для гарантированных работников",
+                Strings.UseGuaranteedPriorityOverrideLabel,
+                Strings.UseGuaranteedPriorityOverrideTooltip,
                 null,
                 out assignmentRect
             );
@@ -305,8 +315,8 @@ public partial class Settings
                     assignmentRect,
                     2,
                     null,
-                    "Уровень приоритета",
-                    $"Уровень приоритета, который будет установлен гарантированным работникам (от 1 до {WorkManagerMod.Settings.MaxWorkTypePriority})",
+                    Strings.GuaranteedOverridePriorityLabel,
+                    Strings.GetGuaranteedOverridePriorityTooltip(WorkManagerMod.Settings.MaxWorkTypePriority),
                     ref rule.GuaranteedOverridePriority,
                     1,
                     WorkManagerMod.Settings.MaxWorkTypePriority,
@@ -383,20 +393,12 @@ public partial class Settings
             {
                 dedicatedWorkersContentHeight += Fields.DoLabeledSelector(dedicatedWorkersRect, 1,
                     null,
-                    "Предпочтение выбора работников",
-                    "Определяет, выбирать лучших или худших работников для этой работы",
+                    Strings.WorkerSelectionPreferenceLabel,
+                    Strings.WorkerSelectionPreferenceTooltip,
                     selectionPref ?? DedicatedWorkerSettings.WorkerSelectionPreference.Best,
-                    Enum.GetValues(typeof(DedicatedWorkerSettings.WorkerSelectionPreference))
-                        .Cast<DedicatedWorkerSettings.WorkerSelectionPreference>().ToList(),
-                    pref => pref switch
-                    {
-                        DedicatedWorkerSettings.WorkerSelectionPreference.Best => "Лучший",
-                        DedicatedWorkerSettings.WorkerSelectionPreference.Worst => "Худший",
-                        _ => pref.ToString()
-                    },
-                    pref => pref == DedicatedWorkerSettings.WorkerSelectionPreference.Best
-                        ? "Выбирать лучших доступных работников"
-                        : "Выбирать худших доступных работников (например, для простых или неприятных работ)",
+                    DedicatedWorkerSelectionPreferencesCache,
+                    WorkerSelectionPreferenceLabel,
+                    WorkerSelectionPreferenceTooltip,
                     pref => { rule.DedicatedWorkerSettings.SelectionPreference = pref; },
                     null, out dedicatedWorkersRect);
             }
@@ -404,10 +406,12 @@ public partial class Settings
             {
                 dedicatedWorkersContentHeight += Fields.DoLabeledSelector(dedicatedWorkersRect, 1,
                     null,
-                    "Предпочтение выбора работников",
-                    "Определяет, выбирать лучших или худших работников для этой работы",
-                    selectionPref, WorkerSelectionPreferencesCache,
-                    WorkerSelectionPreferenceLabel, WorkerSelectionPreferenceTooltip,
+                    Strings.WorkerSelectionPreferenceLabel,
+                    Strings.WorkerSelectionPreferenceTooltip,
+                    selectionPref,
+                    WorkerSelectionPreferencesCache,
+                    WorkerSelectionNullablePreferenceLabel,
+                    WorkerSelectionNullablePreferenceTooltip,
                     pref => { rule.DedicatedWorkerSettings.SelectionPreference = pref; },
                     null, out dedicatedWorkersRect);
             }
@@ -481,8 +485,8 @@ public partial class Settings
                 0,
                 null,
                 ref rule.UseDedicatedPriorityOverride,
-                "Переопределить глобальный приоритет",
-                "Если включено, для выделенных работников будет использован фиксированный приоритет вместо значения, рассчитанного глобальными правилами",
+                Strings.UseDedicatedPriorityOverrideLabel,
+                Strings.UseDedicatedPriorityOverrideTooltip,
                 null,
                 out dedicatedWorkersRect
             );
@@ -493,8 +497,8 @@ public partial class Settings
                     dedicatedWorkersRect,
                     1,
                     null,
-                    "Приоритет для переопределения",
-                    $"Уровень приоритета, который будет установлен выделенным работникам вместо глобального значения (от 1 до {WorkManagerMod.Settings.MaxWorkTypePriority})",
+                    Strings.DedicatedOverridePriorityLabel,
+                    Strings.GetDedicatedOverridePriorityTooltip(WorkManagerMod.Settings.MaxWorkTypePriority),
                     ref rule.DedicatedOverridePriority,
                     1,
                     WorkManagerMod.Settings.MaxWorkTypePriority,

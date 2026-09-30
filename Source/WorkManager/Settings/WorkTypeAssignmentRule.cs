@@ -396,11 +396,11 @@ internal class WorkTypeAssignmentRule : DefCache<WorkTypeDef>, IExposable
                         if (dedicated.SelectionPreference.HasValue)
                         {
                             stringBuilder.AppendIndented(
-                                "Предпочтение выбора: ".Colorize(ColoredText.ExpectationsColor), 2);
+                                Strings.SummarySelectionPreference.Colorize(ColoredText.ExpectationsColor), 2);
                             stringBuilder.AppendLine(dedicated.SelectionPreference.Value ==
                                 DedicatedWorkerSettings.WorkerSelectionPreference.Best
-                                    ? "Лучшие работники"
-                                    : "Худшие работники");
+                                    ? Strings.SummarySelectionBest
+                                    : Strings.SummarySelectionWorst);
                         }
                     }
                 }
@@ -410,29 +410,29 @@ internal class WorkTypeAssignmentRule : DefCache<WorkTypeDef>, IExposable
             }
             anyValue = false;
             stringBuilder.AppendLineIndented(
-                "Переопределение приоритета".Colorize(ColoredText.ColonistCountColor), 1);
+                Strings.SummaryPriorityOverride.Colorize(ColoredText.ColonistCountColor), 1);
             if (UseDedicatedPriorityOverride)
             {
                 anyValue = true;
                 stringBuilder.AppendIndented(
-                    "Переопределить глобальный приоритет: ".Colorize(ColoredText.ExpectationsColor), 2);
+                    Strings.SummaryOverrideGlobalPriority.Colorize(ColoredText.ExpectationsColor), 2);
                 stringBuilder.AppendLine(DedicatedOverridePriority.ToString());
             }
             if (!anyValue)
-                stringBuilder.AppendLineIndented("Не задано", 2);
+                stringBuilder.AppendLineIndented(Strings.SummaryNotSet, 2);
 
             anyValue = false;
             stringBuilder.AppendLineIndented(
-                "Переопределение приоритета для гарантированных работников".Colorize(ColoredText.ColonistCountColor), 1);
+                Strings.SummaryGuaranteedPriorityOverride.Colorize(ColoredText.ColonistCountColor), 1);
             if (UseGuaranteedPriorityOverride)
             {
                 anyValue = true;
                 stringBuilder.AppendIndented(
-                    "Переопределить приоритет гарантированных работников: ".Colorize(ColoredText.ExpectationsColor), 2);
+                    Strings.SummaryOverrideGuaranteedPriority.Colorize(ColoredText.ExpectationsColor), 2);
                 stringBuilder.AppendLine(GuaranteedOverridePriority.ToString());
             }
             if (!anyValue)
-                stringBuilder.AppendLineIndented("Не задано", 2);
+                stringBuilder.AppendLineIndented(Strings.SummaryNotSet, 2);
             stringBuilder.AppendLineIndented(
                 $"{Strings.AllowedWorkersLabel}".Colorize(ColoredText.ColonistCountColor), 1);
             if (AllowedWorkers != null)
