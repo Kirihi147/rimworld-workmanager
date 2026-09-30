@@ -749,7 +749,9 @@ public partial class Settings
     /// </summary>
     internal void SortWorkTypeRules()
     {
-        _workTypeRules?.Sort(CompareWorkTypeRulesByPriority);
+        if (_workTypeRules == null || _workTypeRules.Count <= 1) return;
+        if (DefDatabase<WorkTypeDef>.DefCount == 0) return;
+        _workTypeRules.Sort(CompareWorkTypeRulesByPriority);
     }
 
     /// <summary>
@@ -785,9 +787,6 @@ public partial class Settings
             return 1;
         }
 
-        var labelComparison = string.Compare(x.Label, y.Label, StringComparison.CurrentCultureIgnoreCase);
-        if (labelComparison != 0) return labelComparison;
-
         return string.Compare(x.DefName, y.DefName, StringComparison.OrdinalIgnoreCase);
     }
-}
+}

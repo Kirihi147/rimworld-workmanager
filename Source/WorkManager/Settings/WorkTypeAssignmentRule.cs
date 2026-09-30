@@ -444,7 +444,7 @@ internal class WorkTypeAssignmentRule : DefCache<WorkTypeDef>, IExposable
     /// <summary>
     ///     Gets the label for this rule, or the default label if not set.
     /// </summary>
-    public override string Label => base.Label ?? Strings.DefaultWorkTypeRuleLabel;
+    public override string Label => base.Label ?? (LanguageDatabase.activeLanguage != null ? Strings.DefaultWorkTypeRuleLabel : "* Default *");
 
     /// <summary>
     ///     Serializes and deserializes the rule data.
