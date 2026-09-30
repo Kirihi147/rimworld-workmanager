@@ -478,13 +478,6 @@ public partial class Settings
                         DedicatedWorkerSettings.PawnCountFactorMin,
                         DedicatedWorkerSettings.PawnCountFactorMax, 0.1f, null,
                         out dedicatedWorkersRect);
-                    dedicatedWorkersContentHeight += PawnFilterWidget.DoPawnFilter(
-                        dedicatedWorkersRect, rule.DedicatedWorkerSettings.PawnCountFilter!,
-                        PawnFilterSections.All,
-                        WorkManagerMod.GetModInputId(DedicatedWorkersPawnSkillInputLocalId),
-                        WorkManagerMod.GetModInputId(DedicatedWorkersPawnStatInputLocalId),
-                        WorkManagerMod.GetModInputId(DedicatedWorkersPawnCapacityInputLocalId),
-                        null, out dedicatedWorkersRect);
                     break;
                 case null:
                     break;
@@ -517,6 +510,18 @@ public partial class Settings
                     null,
                     out dedicatedWorkersRect
                 );
+            }
+
+            if (rule.DedicatedWorkerSettings.Mode == DedicatedWorkerMode.PawnCount &&
+                rule.DedicatedWorkerSettings.PawnCountFilter != null)
+            {
+                dedicatedWorkersContentHeight += PawnFilterWidget.DoPawnFilter(
+                    dedicatedWorkersRect, rule.DedicatedWorkerSettings.PawnCountFilter,
+                    PawnFilterSections.All,
+                    WorkManagerMod.GetModInputId(DedicatedWorkersPawnSkillInputLocalId),
+                    WorkManagerMod.GetModInputId(DedicatedWorkersPawnStatInputLocalId),
+                    WorkManagerMod.GetModInputId(DedicatedWorkersPawnCapacityInputLocalId),
+                    null, out dedicatedWorkersRect);
             }
         }
         _dedicatedWorkersSectionContentHeight = dedicatedWorkersContentHeight;
