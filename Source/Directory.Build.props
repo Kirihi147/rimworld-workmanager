@@ -1,12 +1,17 @@
 <Project>
 	<PropertyGroup>
+		<ProjectRootDir Condition="'$(ProjectRootDir)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\'))</ProjectRootDir>
 		<RimWorldDir Condition="'$(RimWorldDir)' == '' AND '$(RIMWORLD_DIR)' != ''">$(RIMWORLD_DIR)</RimWorldDir>
 		<RimWorldDir Condition="'$(RimWorldDir)' == ''">d:\Games\SteamLibrary\steamapps\common\RimWorld</RimWorldDir>
-		<RimWorldManagedDir>$(RimWorldDir)\RimWorldWin64_Data\Managed</RimWorldManagedDir>
+		<RimWorldManagedDir Condition="'$(RimWorldManagedDir)' == '' AND '$(RIMWORLD_MANAGED_DIR)' != ''">$(RIMWORLD_MANAGED_DIR)</RimWorldManagedDir>
+		<RimWorldManagedDir Condition="'$(RimWorldManagedDir)' == '' AND Exists('$(RimWorldDir)\RimWorldWin64_Data\Managed\Assembly-CSharp.dll')">$(RimWorldDir)\RimWorldWin64_Data\Managed</RimWorldManagedDir>
+		<RimWorldManagedDir Condition="'$(RimWorldManagedDir)' == ''">$(ProjectRootDir)</RimWorldManagedDir>
 	</PropertyGroup>
 	<PropertyGroup>
 		<LordKuperCommonDir Condition="'$(LordKuperCommonDir)' == '' AND '$(LORDKUPER_COMMON_DIR)' != ''">$(LORDKUPER_COMMON_DIR)</LordKuperCommonDir>
 		<LordKuperCommonDir Condition="'$(LordKuperCommonDir)' == ''">$(MSBuildThisFileDirectory)..\..\rimworld-common</LordKuperCommonDir>
-		<LordKuperCommonAssembliesDir>$(LordKuperCommonDir)\1.6\Assemblies</LordKuperCommonAssembliesDir>
+		<LordKuperCommonAssembliesDir Condition="'$(LordKuperCommonAssembliesDir)' == '' AND '$(LORDKUPER_COMMON_ASSEMBLIES_DIR)' != ''">$(LORDKUPER_COMMON_ASSEMBLIES_DIR)</LordKuperCommonAssembliesDir>
+		<LordKuperCommonAssembliesDir Condition="'$(LordKuperCommonAssembliesDir)' == '' AND Exists('$(LordKuperCommonDir)\1.6\Assemblies\LordKuper.Common.dll')">$(LordKuperCommonDir)\1.6\Assemblies</LordKuperCommonAssembliesDir>
+		<LordKuperCommonAssembliesDir Condition="'$(LordKuperCommonAssembliesDir)' == ''">$(ProjectRootDir)</LordKuperCommonAssembliesDir>
 	</PropertyGroup>
 </Project>

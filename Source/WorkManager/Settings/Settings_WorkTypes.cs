@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using LordKuper.Common.Filters;
@@ -132,16 +132,21 @@ public partial class Settings
     private float _workTypesTopHeight;
 
     /// <summary>
+    ///     Backing field for <see cref="SelectedWorkTypeRule" />.
+    /// </summary>
+    private WorkTypeAssignmentRule? _selectedWorkTypeRule;
+
+    /// <summary>
     ///     Gets or sets the currently selected work type rule for editing.
     ///     When set, updates the allowed workers list.
     /// </summary>
     private WorkTypeAssignmentRule? SelectedWorkTypeRule
     {
-        get;
+        get => _selectedWorkTypeRule;
         set
         {
-            if (Equals(field, value)) return;
-            field = value;
+            if (Equals(_selectedWorkTypeRule, value)) return;
+            _selectedWorkTypeRule = value;
             UpdateAllowedWorkers();
         }
     }
@@ -152,16 +157,21 @@ public partial class Settings
     internal IReadOnlyList<WorkTypeAssignmentRule> WorkTypeRules => _workTypeRules ??= [.. WorkTypeAssignmentRule.DefaultRules];
 
     /// <summary>
+    ///     Cached height of the bottom part of the work types tab.
+    /// </summary>
+    private float _workTypesBottomHeight;
+
+    /// <summary>
     ///     Gets the height of the bottom part of the work types tab, calculating if not cached.
     /// </summary>
     private float WorkTypesBottomHeight
     {
         get
         {
-            if (field <= 0f)
-                field = PawnBox.GetPawnBoxHeight(2) + Labels.SectionHeaderHeight +
+            if (_workTypesBottomHeight <= 0f)
+                _workTypesBottomHeight = PawnBox.GetPawnBoxHeight(2) + Labels.SectionHeaderHeight +
                         Layout.ElementGap;
-            return field;
+            return _workTypesBottomHeight;
         }
     }
 
