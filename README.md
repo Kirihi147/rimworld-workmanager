@@ -1,5 +1,10 @@
 # rimworld-workmanager
 
+> **Disclaimer / Примечание:**  
+> The code in this fork was written by a Large Language Model (AI). I don't write code myself — I just described what I wanted changed and tested the mod in RimWorld.  
+> 
+> Код в этом форке был написан языковой моделью (ИИ). Я сам не программист — я просто описывал, что хочу изменить, и тестировал мод в RimWorld.
+
 [![Version](https://img.shields.io/badge/Rimworld-1.1-green.svg)](http://rimworldgame.com/)
 [![Version](https://img.shields.io/badge/Rimworld-1.2-green.svg)](http://rimworldgame.com/)
 [![Version](https://img.shields.io/badge/Rimworld-1.3-green.svg)](http://rimworldgame.com/)
